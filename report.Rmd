@@ -1,0 +1,224 @@
+---
+title: 'Project'
+author: "Claudio Previte and Ana -Maria Casian"
+date: "automn 2019"
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 3
+    toc: yes
+    toc_depth: 2
+  documentclass: article
+  geometry: margin=0.5in
+classoption: a4paper
+---
+
+```{r message=FALSE, warning=FALSE}
+library(here)
+library(Hmisc)
+library(dplyr)
+library(DataExplorer)
+library(ggplot2)
+library(lattice)
+library(inspectdf)
+
+```
+
+# Loading data
+```{r}
+bands <- read.csv(file = here('bands3.csv'), sep = ';')
+```
+
+# EDA
+
+#Summary bands
+```{r}
+summary(bands)
+```
+
+#Data Transformation
+```{r}
+
+bands <- as.data.frame(lapply(bands,function(x) 
+  if(is.factor(x)) factor(toupper(x)) 
+  else(x))) # uppercase for all the factor values
+
+cols = c(21:39)  
+bands[,cols] = apply(bands[,cols], 2, function(x) as.numeric(as.character(x))) #change class to numeric for num row
+
+str(bands)
+
+sapply(bands, mode)
+sapply(bands, class)
+
+
+
+```
+
+```{r}
+knitr::kable(introduce(bands))
+
+describe(bands)
+
+```
+
+```{r}
+plot_intro(bands)
+
+plot_histogram(bands)
+
+plot_density(bands)
+
+plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
+
+plot_correlation(bands, type= 'c', cor_args = list( 'use' = 'complete.obs'))
+
+#ggpairs(bands[,-40], ggplot2::aes(colour=band_type))
+
+# split data in 2
+bands.band <- filter(bands, bands$band_type == 'BAND')
+
+bands.noband <- filter(bands, bands$band_type == 'NOBAND')
+
+summary(bands.band)
+summary(bands.noband)
+
+# managing missing values (19 rows with NAs)
+
+na <- inspect_na(bands)
+show_plot(na, col_palette=2)
+```
+
+
+
+
+```{r}
+
+
+for (i in 21:39) {
+  print(paste("This is ",colnames(bands[i])))
+  print(summary(bands[i]))
+  plot(bands[,i])
+  boxplot(bands[i])
+  bands[is.na(bands[,i]), i] <- mean(bands[,i], na.rm = TRUE)    
+  
+}
+
+
+
+
+```
+
+
+```{r}
+
+# blade_pressure
+summary(bands$blade_pressure)
+plot(bands$blade_pressure)
+bands$blade_pressure[is.na(bands$blade_pressure)] <- median(bands$blade_pressure, na.rm=TRUE)
+
+# esa_voltage
+summary(bands$ESA_voltage)
+plot(bands$ESA_voltage)
+
+  
+# varnish_pct
+summary(bands$varnish_pct)
+plot(bands$varnish_pct)
+
+# ink_pct
+summary(bands$ink_pct)
+plot(bands$ink_pct)
+bands$ink_pct[is.na(bands$ink_pct)] <- median(bands$ink_pct, na.rm=TRUE)
+
+# solvent_pct
+
+summary(bands$solvent_pct)
+plot(bands$solvent_pct)
+bands$solvent_pct[is.na(bands$solvent_pct)] <- median(bands$solvent_pct, na.rm=TRUE)
+
+# proof_cut
+
+summary(bands$proof_cut)
+plot(bands$proof_cut)
+bands$proof_cut[is.na(bands$proof_cut)] <- median(bands$proof_cut, na.rm=TRUE)
+
+# esa_amperage
+
+summary(bands$ESA_amperage) # 4 outliers and they don't have the same output so not determinant
+plot(bands$ESA_amperage)
+bands$ESA_amperage[is.na(bands$ESA_amperage)] <- median(bands$ESA_amperage, na.rm=TRUE)
+
+# roller_durometer
+
+summary(bands$roller_durometer) # 5 outliers and they don't have the same output so not determinant
+plot(bands$roller_durometer)
+bands$roller_durometer[is.na(bands$roller_durometer)] <- median(bands$roller_durometer, na.rm=TRUE)
+
+# roughness
+
+summary(bands$roughness)
+plot(bands$roughness)
+bands$roughness[is.na(bands$roughness)] <- median(bands$roughness, na.rm=TRUE)
+
+# caliper
+
+summary(bands$caliper)
+plot(bands$caliper)
+bands$caliper[is.na(bands$caliper)] <- median(bands$caliper, na.rm=TRUE)
+
+# press_speed
+
+summary(bands$press_speed)
+plot(bands$press_speed)
+bands$press_speed[is.na(bands$press_speed)] <- median(bands$press_speed, na.rm=TRUE)
+
+# hardener
+
+summary(bands$hardener)
+plot(bands$hardener)
+bands$hardener[is.na(bands$hardener)] <- median(bands$hardener, na.rm=TRUE)
+
+# current_density
+
+summary(bands$current_density)
+plot(bands$current_density)
+
+
+  
+# anode_space_ratio
+  
+summary(bands$anode_space_ratio)
+plot(bands$anode_space_ratio)
+bands$anode_space_ratio[is.na(bands$anode_space_ratio)] <- median(bands$anode_space_ratio, na.rm=TRUE)
+
+# wax
+
+summary(bands$wax)
+plot(bands$wax)
+bands$wax[is.na(bands$wax)] <- median(bands$wax, na.rm=TRUE)
+
+# viscosity
+summary(bands$viscosity)
+plot(bands$viscosity)
+bands$viscosity[is.na(bands$viscosity)] <- median(bands$viscosity, na.rm=TRUE)
+
+# chrome_content
+
+summary(bands$chrome_content)
+plot(bands$chrome_content) # if value is 95, always band !!!
+
+
+# ink_temperature
+
+summary(bands$ink_temperature)
+plot(bands$ink_temperature)
+bands$ink_temperature[is.na(bands$ink_temperature)] <- median(bands$ink_temperature, na.rm=TRUE)
+
+# humidity
+
+summary(bands$humidity)
+plot(bands$humidity)
+bands$humidity[is.na(bands$humidity)] <- median(bands$humidity, na.rm=TRUE)
+```
+
