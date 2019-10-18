@@ -7,6 +7,11 @@ library(DataExplorer)
 library(ggplot2)
 library(lattice)
 library(inspectdf)
+library(explore)
+library(tidyverse)
+library(rpart.plot)
+library(rpart)
+
 
 
 # Loading data
@@ -21,8 +26,8 @@ bands <- as.data.frame(lapply(bands,function(x)
   if(is.factor(x)) factor(toupper(x)) 
   else(x))) # uppercase for all the factor values
 
-cols = c( 21:39)  
-bands[,cols] = apply(bands[,cols], 2, function(x) as.numeric(as.character(x))) #change class to numeric for num row
+ 
+bands[,c( 21:39)] = apply(bands[,c( 21:39)], 2, function(x) as.numeric(as.character(x))) #change class to numeric for num row
 
 str(bands)
 
@@ -34,6 +39,12 @@ describe(bands)
 
 introduce(bands)
 
+bands %>%
+  explore::describe(band_type)
+
+bands %>%
+  explore::describe()
+
 plot_intro(bands)
 
 plot_histogram(bands)
@@ -44,7 +55,6 @@ plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
 plot_correlation(bands, type= 'c', cor_args = list( 'use' = 'complete.obs'))
 
-ggpairs(bands[,-40], ggplot2::aes(colour=band_type))
 
 # split data in 2
 bands.band <- filter(bands, bands$band_type == 'BAND')
@@ -166,3 +176,31 @@ bands$ink_temperature[is.na(bands$ink_temperature)] <- median(bands$ink_temperat
 summary(bands$humidity)
 plot(bands$humidity)
 bands$humidity[is.na(bands$humidity)] <- median(bands$humidity, na.rm=TRUE)
+
+
+
+# train and test set
+## set the seed to make your partition reproducible
+library(caret)
+set.seed(1234) #randomization
+
+
+trainIndex <- createDataPartition(bands$band_type,p=0.75,list=FALSE) #creating indices
+
+#splitting data into training/testing data using the trainIndex object
+train.bands <- bands[trainIndex,] #training data (75% of data)
+
+test.bands <- bands[-trainIndex,] #testing data (25% of data)
+dim(test.bands)
+dim(train.bands)
+prop.table(table(test.bands$band_type))
+prop.table(table(train.bands$band_type))
+
+# fitting the model
+
+fit <- rpart(band_type~., data = train.bands, method = 'class')
+rpart.plot(fit) ### it doesn't work well
+
+predict_bands <-predict(fit, test.bands, type = 'class')
+table_mat <- table(test.bands$band_type, predict_bands)
+table_mat
