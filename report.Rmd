@@ -25,6 +25,7 @@ library(inspectdf)
 ```
 
 # Loading data
+
 ```{r}
 bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 ```
