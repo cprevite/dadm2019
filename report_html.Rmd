@@ -110,6 +110,12 @@ for (i in 21:39) {
 
 ```
 
+# Deleting useless variables
+
+```{r}
+bands <- bands[-c(1, 2, 3, 4, 6, 8, 9, 17, 20, 32, 33, 39)]
+```
+
 
 #Summary bands
 
@@ -132,7 +138,7 @@ plot_intro(bands)
 
 
 
-```{r}
+```{r fig.height= 12}
 
 
 plot_histogram(bands[-c(1)])
@@ -144,6 +150,10 @@ bands[-c(1)] %>% explore_all(target = band_type)
 plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
 plot_correlation(bands, type= 'c', cor_args = list( 'use' = 'complete.obs'))
+
+bands %>% 
+  select(c(12:28)) %>%
+  explore_all(target = band_type)
 
 #ggpairs(bands[,-40], ggplot2::aes(colour=band_type))
 
@@ -163,7 +173,7 @@ show_plot(na, col_palette=2)
 
 
 ```{r}
-bands[,c(21:39)]  %>% 
+bands[,c(12:28)]  %>% 
   correlate() %>% network_plot(min_cor = .1)
 
 ```
