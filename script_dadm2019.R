@@ -204,3 +204,12 @@ rpart.plot(fit) ### it doesn't work well
 predict_bands <-predict(fit, test.bands, type = 'class')
 table_mat <- table(test.bands$band_type, predict_bands)
 table_mat
+
+
+# subset data
+
+data.1 <- bands[1:485,]
+data.2 <- bands[486:540,]
+
+plot_intro(data.1)
+plot_intro(data.2)

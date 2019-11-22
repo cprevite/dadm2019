@@ -23,7 +23,7 @@ library(inspectdf)
 library(kableExtra)
 library(explore)
 library(DT)
-library(corrr)
+library(cor)
 
 
 
@@ -179,7 +179,82 @@ bands[,c(12:28)]  %>%
 ```
 
 
+```{r bands.ct}
+require(rpart)
+library(rpart.plot)
+set.seed(123456)
+bands.ct <- rpart(band_type ~ ., method = "class", data = bands, control = rpart.control(minsplit = 4, 
+    cp = 1e-05), model = TRUE)
+
+summary(bands.ct)
+
+rpart.plot(bands.ct, box.palette="RdBu", nn=FALSE)
+
+# par(mar = c(0.5, 1, 0.5, 1))
+# plot(bands.ct, uniform = TRUE)
+# text(bands.ct, use.n = TRUE, all = TRUE, cex = 0.6)
 
 
+```
 
+```{r bands.par}
+
+require(lattice)
+
+trellis.par.set(col.whitebg())
+plot.bands.par <- xyplot(roller_durometer ~ viscosity, bands, groups = band_type, pch = 16, 
+    col = c("red", "green"), panel = function(x, y, groups, ...) {
+        panel.superpose(x, y, groups, ...)
+        panel.abline(v = 2.45, lty = 2)
+        panel.segments(2.45, 1.75, max(x) * 2, 1.75, lty = 2)
+        panel.segments(4.95, min(y) * -2, 4.95, 1.75, lty = 2)
+        panel.segments(2.45, 1.65, 4.95, 1.65, lty = 2)
+        panel.segments(4.95, 1.55, max(x) * 2, 1.55, lty = 2)
+    }, key = list(columns = 3, col = c("red", "green"), text = list(c("BAND", 
+        "NOBAND"))))
+print(plot.bands.par)
+
+printcp(bands.ct)
+
+par(pty = "s")
+plotcp(bands.ct)
+
+# pruning trees
+par(pty = "s")
+with(bands.ct, plot(cptable[, 3], xlab = "Tree Number", ylab = "Resubstitution Error (R)", 
+    type = "b"))
+
+par(pty = "s")
+with(bands.ct, plot(cptable[, 4], xlab = "Tree Number", ylab = "Cross-Validated Error (R(cv))", 
+    type = "b"))
+
+par(pty = "s")
+plotcp(bands.ct)
+with(bands.ct, {
+    lines(cptable[, 2] + 1, cptable[, 3], type = "b", col = "red")
+    legend(3, 1, c("Resub. Error", "CV Error", "min(CV Error)+1SE"), lty = c(1, 
+        1, 2), col = c("red", "black", "black"), bty = "n")
+})
+
+bands.prune <- prune(bands.ct, cp = 0.1)
+summary(bands.prune)
+
+library(knitr)
+bands.pred <- predict(bands.prune, type = "class")
+table(bands.pred, bands$band_type)
+```
+
+```{r neural network model}
+
+require(nnet)
+
+bands.net <- nnet(band_type ~ ., data = bands, size = 2, rang = 0.1, decay = 5e-04, 
+    Hess = T, maxit = 200)
+
+eigen(bands.net$Hess, T)$values
+
+library(NeuralNetTools)
+par(mar = numeric(4), family = "serif")
+plotnet(bands.net, pos_col = "darkgreen", neg_col = "darkblue")
+```
 
