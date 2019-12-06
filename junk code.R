@@ -22,3 +22,8 @@ bands <-
       "chrome_content"
     )
   )]
+
+
+#retrieve colnames
+a = as.data.frame((colnames(bands)))
+a = cbind(a,c(1:40))

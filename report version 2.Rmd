@@ -153,18 +153,33 @@ axis(
   at = 1:ncol(boruta_test$ImpHistory),
   cex.axis = 0.8
 )
+
+names(lz) <- colnames(boruta_test$ImpHistory)
+
+final_decision= as.data.frame(boruta_test$finalDecision)
+
+setDT(final_decision, keep.rownames = TRUE)[]
+colnames(final_decision) <- c("variable","decision")
+
+boruta.data <- final_decision %>%
+  filter(final_decision$decision == 'Confirmed' | final_decision$decision == 'Tentative')
+
+variables_to_keep <- boruta.data$variable
+
+
+
 ```
 
 # Deleting useless variables
 
-To write why we consider the useless. better with names. like this we don't have to count and it's also easier for the reader
+To write why we consider the useless. 
 ```{r}
 
-variables_to_detele = rownames(subset(info_boruta, info_boruta$decision=="Rejected"))
+
 
 bands <-
   bands[, which(
-    !names(bands) %in% variables_to_detele
+    names(bands) %in% variables_to_keep
   )]
 
 
