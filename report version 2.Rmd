@@ -23,22 +23,119 @@ library(inspectdf)
 library(kableExtra)
 library(explore)
 library(DT)
-
+library(dplyr)
+library(Boruta)
 
 ```
 
-# Loading data
+
+
+
+# Executive summary
+
+## Challenges
+
+## Analysis
+
+## Results
+
+# General
+
+## Source of data
+
+## Case description
+
+# Data processing
+
+
+## Loading data
 
 ```{r}
 bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 ```
 
 
-# First visaulization
+## Data visualisation
+
+```{r}
+str(bands)
+```
+
+
+### First data transformation to continue looking at the vars
+
+```{r }
+
+
+#change class to numeric for numeric variables 
+cols_numeric = c(21:39)  
+bands[,cols_numeric] = apply(bands[,cols_numeric], 2, function(x) as.numeric(as.character(x))) 
+
+# uppercase for all the factor values
+bands <- as.data.frame(lapply(bands,function(x) 
+  if(is.factor(x)) factor(toupper(x)) 
+  else(x)))
+
+#change class to date for data variable 
+bands <- transform(bands, date = as.Date(as.character(date), "%Y%m%d"))
+
+
+
+
+```
+
+
+
+
 ```{r}
 datatable(bands)
 
+bands %>% 
+  introduce() %>%
+  t()%>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
+  footnote(symbol = strwrap("Sort description of the data"))
 
+
+plot_intro(bands)
+
+summary(bands)
+
+bands %>% 
+  explore::describe() %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")
+
+show_plot(inspect_na(bands), col_palette=2)
+
+```
+
+
+### Check the data structure
+
+```{r, message=FALSE, warning=FALSE, include= FALSE}
+str(bands) #this part will not apear in the report, but we should comment about it. This line of code helped us to decide wich data to transform in the first part
+
+```
+
+### Check the structure of the missing values
+
+In this part we use the'aggr' function Calculate or plot the amount of missing/imputed values in each variable and the amount of missing/imputed values in certain combinations of variables.
+```{r}
+
+library(VIM)
+aggr(bands[, which(sapply(bands, function(x)all(any(is.na(x)))) == TRUE)], sortVar=TRUE, cex.lab=0.8, cex.axis=0.9,  numbers = TRUE, combined = TRUE,  oma = c(8,1,1,1))
+
+
+```
+
+
+
+
+
+
+```{r}
 bands %>% 
   introduce() %>%
   t()%>%
@@ -46,69 +143,24 @@ bands %>%
   kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
   footnote(symbol = strwrap("Short description of the data"))
 
+
+plot_intro(bands)
+
+bands %>% explore_all(target = band_type)
 ```
-
-
-#Check the data structure
-
-```{r, message=FALSE, warning=FALSE, include= FALSE}
-str(bands) #this part will not apear in the report, but we should comment about it. This line of code helped us to decide wich data to transform in the first part
-
-```
-
-
-#Data Transformation
-
-```{r message=FALSE, warning=FALSE}
-
-bands <- as.data.frame(lapply(bands,function(x) 
-  if(is.factor(x)) factor(toupper(x)) 
-  else(x))) # uppercase for all the factor values
-
-#there is a warning message!!!! I took it out for now, but to review it and understand it
-
-
-cols = c(21:39)  
-bands[,cols] = apply(bands[,cols], 2, function(x) as.numeric(as.character(x))) #change class to numeric for num row
-
-bands <- transform(bands, date = as.Date(as.character(date), "%Y%m%d"))
-
-
-
-```
-
-#Double-cheking the data structure is correct
-```{r , message=FALSE, warning=FALSE, include= FALSE}
-
-#make sure that the variables are well defined
-str(bands)
-
-```
-
 
 
 
 ```{r}
-
-
-
-library(VIM)
-aggr(bands[, which(sapply(bands, function(x)all(any(is.na(x)))) == TRUE)], sortVar=TRUE, cex.lab=0.8, cex.axis=0.9,  numbers = TRUE, combined = TRUE,  oma = c(8,1,1,1))
-
-
-
-```
-
-
-```{r}
-library(dplyr)
-
+#Delete the last rows that have consecutive missing data
 bands <- bands[-c(486:540),]
 
+# replace missing values of "location variable" with value "Undefined"
 bands$location = as.character(bands$location)
-bands$location[is.na(bands$location)] <- "ana"
+bands$location[is.na(bands$location)] <- "UNDEFINED"
 bands$location = as.factor(bands$location)
 
+# Delete variables that are not needed
 bands <-
   bands[, which(
     !names(bands) %in% c(
@@ -118,13 +170,18 @@ bands <-
       
     )
   )]
+```
 
 
+```{r}
+
+# create de mode function
 Mode <- function(x) {
   ux <- unique(x)
   ux[which.max(tabulate(match(x, ux)))]
 }
 
+#replace missing values: mean for numerical variables and mode for the categorical ones
 bands<- as.data.frame( lapply(bands, function(x) {
     if(is.factor(x)) replace(x, is.na(x), Mode(na.omit(x)))
     else if(is.numeric(x)) replace(x, is.na(x), mean(x, na.rm=TRUE))
@@ -132,14 +189,25 @@ bands<- as.data.frame( lapply(bands, function(x) {
 }))
 
 
-library(Boruta)
+
+
+
+```
+
+
+
+```{r}
+
 boruta_test <- Boruta(band_type~., data = bands, doTrace = 2)
+table_result <-as.data.frame(boruta_test$finalDecision)
+setDT(table_result, keep.rownames = TRUE)[]
+colnames(table_result) <- c("Variable","Decision")
 
+kable(table_result)%>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
+  footnote(symbol = strwrap("Results of the boruta test"))%>%
+   scroll_box(width = "500px", height = "300px")
 
-
-kable(boruta_test$finalDecision)
-info_boruta = as.data.frame(boruta_test$finalDecision)
-colnames(info_boruta) <- c("decision")
 
 plot(boruta_test, xlab = "", xaxt = "n")
 lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
@@ -154,32 +222,26 @@ axis(
   cex.axis = 0.8
 )
 
-names(lz) <- colnames(boruta_test$ImpHistory)
-
-final_decision= as.data.frame(boruta_test$finalDecision)
-
-setDT(final_decision, keep.rownames = TRUE)[]
-colnames(final_decision) <- c("variable","decision")
-
-boruta.data <- final_decision %>%
-  filter(final_decision$decision == 'Confirmed' | final_decision$decision == 'Tentative')
-
-variables_to_keep <- boruta.data$variable
 
 
+
+variables_to_keep <- table_result %>%
+  filter(table_result$Decision == 'Confirmed' | table_result$Decision == 'Tentative')
+
+names_variables_to_keep <- variables_to_keep$Variable
 
 ```
 
+
 # Deleting useless variables
 
-To write why we consider the useless. 
-```{r}
 
+```{r}
 
 
 bands <-
   bands[, which(
-    names(bands) %in% variables_to_keep
+    names(bands) %in% names_variables_to_keep
   )]
 
 
@@ -187,7 +249,7 @@ bands <-
 
 
 
-#Outliers. We have generated the boxplot and the summary for all the variables and examinated the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error meassurements and neither error entries in the data
+# Outliers. We have generated the boxplot and the summary for all the variables and examinated the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error meassurements and neither error entries in the data
 
 ```{r, message=FALSE, warning=FALSE, include= FALSE}
 
@@ -202,29 +264,6 @@ for (i in numeric_column) {
 
 
 
-
-
-#Summary bands
-
-```{r}
-# summary for 
-
-bands %>% 
-  explore::describe() %>%
-  kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")
-
-bands %>%
-  summary() %>%
-  kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")
-
-plot_intro(bands)
-```
-
-
-
-
 ```{r fig.height= 12}
 
 
@@ -232,12 +271,14 @@ plot_histogram(bands)
 
 plot_density(bands)
 
-bands %>% explore_all(target = band_type)
+
 
 plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
 plot_correlation(bands, type= 'c', cor_args = list( 'use' = 'complete.obs'))
 
+
+numeric_column <- names(select_if(bands, is.numeric))
 bands %>% 
   select(numeric_column, band_type) %>%
   explore_all(target = band_type)
@@ -252,10 +293,9 @@ bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 # summary(bands.band)
 # summary(bands.noband)
 
-# managing missing values (19 rows with NAs)
 
-na <- inspect_na(bands)
-show_plot(na, col_palette=2)
+
+
 ```
 
 
