@@ -214,17 +214,107 @@ bands <-
     !names(bands) %in% c(
       "date",
       "ink_color",
-      "customer"
+      "customer", 
+      'cylinder_division'
       
     )
   )]
 ```
 
 ```{r}
+#
+
+
+
+
+library(caret)
+
+# Create the training and test datasets
+set.seed(100)
+
+# Step 1: Get row numbers for the training data
+trainRowNumbers <- createDataPartition(bands$band_type, p=0.8, list=FALSE)
+
+# Step 2: Create the training  dataset
+trainData <- bands[trainRowNumbers,]
+
+# Step 3: Create the test dataset
+testData <- bands[-trainRowNumbers,]
+
+# Store X and Y for later use.
+x = trainData[, 2:18]
+y = trainData$band_type
+
+# Create the knn imputation model on the training data
+library(RANN)  # required for knnInpute
+preProcess_missingdata_model <- preProcess(trainData, method='knnImpute')
+preProcess_missingdata_model
+
+
+
+# Use the imputation model to predict the values of missing data points
+
+trainData <- predict(preProcess_missingdata_model, newdata = trainData)
+anyNA(trainData)
+trainData <- knnImputation(trainData, k = 5)
+
+
+
+set.seed(100)
+options(warn=-1)
+
+ctrl <- rfeControl(functions = rfFuncs,
+                   method = "repeatedcv",
+                   repeats = 5,
+                   verbose = FALSE)
+trainData <- trainData[,- 1]
+
+lmProfile <- rfe(x=trainData, y=trainData$band_type,
+                 rfeControl = ctrl)
+
+lmProfile
+
+
+# Set the seed for reproducibility
+set.seed(100)
+
+# Train the model using randomForest and predict on the training data itself.
+model_mars = train(band_type ~ ., data=trainData, method='earth')
+fitted <- predict(model_mars)
+varimp_mars <- varImp(model_mars)
+plot(varimp_mars, main="Variable Importance with MARS")
+
+
+# prepare testData
+preProcess_missingdata_model <- preProcess(testData, method='knnImpute')
+preProcess_missingdata_model
+
+testData <- predict(preProcess_missingdata_model, newdata = testData)
+anyNA(testData)
+testData <- knnImputation(testData, k = 5)
+testData <- testData[,- 1]
+
+predicted <- predict(model_mars, testData)
+predicted
+
+confusionMatrix(reference = testData$band_type, data = predicted, mode='everything', positive='NOBAND')
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
 # replace missing values with knn 
 # we have to decide if we want to reèlace only factor or all variables with this method...
-library("VIM")
-bands <- kNN(bands, k=10)
+library(DMwR)
+
+bands <- knnImputation(bands, k=10)
 ```
 
 
