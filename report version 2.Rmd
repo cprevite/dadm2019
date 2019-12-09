@@ -395,7 +395,6 @@ bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 
 # test and train sets
 ```{r}
-# MARS Multivariate Adaptive Regression Splines
 
 library(caret)
 
@@ -462,6 +461,45 @@ confusionMatrix(
   positive = 'NOBAND'
 )
 ```
+
+```{r}
+# random forest
+
+library(randomForest)
+library(funModeling)
+# Call the function:
+# delete cylinder_no because too much levels for the model
+integ_mod_1 <- data_integrity_model(data = bands[,-1], model_name = "randomForest")
+integ_mod_1$data_ok
+
+
+# Any errors ?
+integ_mod_1
+
+model_rf <- randomForest(formula(band_type ~.), 
+                          data= trainData, 
+                          ntree=500, mtry=4, 
+                          importance=TRUE, 
+                          localImp=TRUE,
+                          na.action=na.roughfix,
+                          replace=FALSE)
+print(model_rf)
+
+head(round(importance(model_rf), 2))
+varImpPlot(model_rf)
+
+library(gmodels)
+
+rf.pred<-predict(model_rf, testData, type="class")
+rf.pred
+
+table(true=testData$band_type, pred = rf.pred)
+
+CrossTable(x=testData$band_type, y=rf.pred, prop.chisq=FALSE)
+
+confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
+```
+
 
 ```{r}
 # logistic regression
