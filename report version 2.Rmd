@@ -182,11 +182,15 @@ row.plot
 
 EDA
 ```{r}
-bands %>% 
+bands %>%
   introduce() %>%
-  t()%>%
+  t() %>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
+    full_width = F,
+    position = "center"
+  ) %>%
   footnote(symbol = strwrap("Short description of the data"))
 
 
@@ -270,22 +274,27 @@ anyNA(bands)
 
 ```{r}
 
-boruta_test <- Boruta(band_type~., data = bands, doTrace = 2)
-table_result <-as.data.frame(boruta_test$finalDecision)
-setDT(table_result, keep.rownames = TRUE)[]
-colnames(table_result) <- c("Variable","Decision")
 
-kable(table_result)%>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
-  footnote(symbol = strwrap("Results of the boruta test"))%>%
-   scroll_box(width = "500px", height = "300px")
+boruta_test <- Boruta(band_type ~ ., data = bands, doTrace = 2)
+table_result <- as.data.frame(boruta_test$finalDecision)
+setDT(table_result, keep.rownames = TRUE)[]
+colnames(table_result) <- c("Variable", "Decision")
+
+kable(table_result) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
+    full_width = F,
+    position = "center"
+  ) %>%
+  footnote(symbol = strwrap("Results of the boruta test")) %>%
+  scroll_box(width = "500px", height = "300px")
 
 
 plot(boruta_test, xlab = "", xaxt = "n")
 lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
   boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
 names(lz) <- colnames(boruta_test$ImpHistory)
-Labels <- sort(sapply(lz, median)) 
+Labels <- sort(sapply(lz, median))
 axis(
   side = 1,
   las = 2,
@@ -296,12 +305,13 @@ axis(
 
 
 variables_to_keep <- table_result %>%
-  filter(table_result$Decision == 'Confirmed' | table_result$Decision == 'Tentative')
+  filter(table_result$Decision == 'Confirmed' |
+           table_result$Decision == 'Tentative')
 
 band_typeVar <- data.frame('band_type', 'Confirmed')
 names(band_typeVar) <- c('Variable', 'Decision')
 
-variables_to_keep <- rbind(variables_to_keep, band_typeVar)  
+variables_to_keep <- rbind(variables_to_keep, band_typeVar)
 
 names_variables_to_keep <- variables_to_keep$Variable
 
@@ -408,19 +418,24 @@ testData <- bands[-trainRowNumbers,]
 # MARS Multivariate Adaptive Regression Splines
 # recursive feature elimination (RFE)
 set.seed(100)
-options(warn=-1)
+options(warn = -1)
 
 subsets <- c(1:6, 10, 15, 35)
 
-ctrl <- rfeControl(functions = rfFuncs,
-                   method = "repeatedcv",
-                   repeats = 5,
-                   verbose = FALSE)
-trainData <- trainData[,- 1]
+ctrl <- rfeControl(
+  functions = rfFuncs,
+  method = "repeatedcv",
+  repeats = 5,
+  verbose = FALSE
+)
+trainData <- trainData[, -1]
 
-lmProfile <- rfe(x=trainData, y=trainData$band_type,
-                 sizes = subsets,
-                 rfeControl = ctrl)
+lmProfile <- rfe(
+  x = trainData,
+  y = trainData$band_type,
+  sizes = subsets,
+  rfeControl = ctrl
+)
 
 lmProfile
 
@@ -429,10 +444,10 @@ lmProfile
 set.seed(100)
 
 # Train the model using randomForest and predict on the training data itself.
-model_mars = train(band_type ~ ., data=trainData, method='earth')
+model_mars = train(band_type ~ ., data = trainData, method = 'earth')
 fitted <- predict(model_mars)
 varimp_mars <- varImp(model_mars)
-plot(varimp_mars, main="Variable Importance with MARS")
+plot(varimp_mars, main = "Variable Importance with MARS")
 
 
 model_mars
@@ -440,50 +455,124 @@ model_mars
 predicted <- predict(model_mars, testData)
 predicted
 
-confusionMatrix(reference = testData$band_type, data = predicted, mode='everything', positive='NOBAND')
+confusionMatrix(
+  reference = testData$band_type,
+  data = predicted,
+  mode = 'everything',
+  positive = 'NOBAND'
+)
 ```
 
 ```{r}
 # logistic regression
 
-fitControl <- trainControl(method="none")
+fitControl <- trainControl(method = "none")
 
-model_lr <- train(band_type ~ ., data = trainData, method="glm",trControl=fitControl)
+model_lr <-
+  train(band_type ~ .,
+        data = trainData,
+        method = "glm",
+        trControl = fitControl)
 
 print(model_lr$finalModel)
 
-pred <- predict(model_lr,newdata = testData)
+pred <- predict(model_lr, newdata = testData)
 
 print(table(pred))
 
-mat <- confusionMatrix(data=pred,reference = testData$band_type, positive = "NOBAND")
+mat <-
+  confusionMatrix(data = pred,
+                  reference = testData$band_type,
+                  positive = "NOBAND")
 print(mat)
 ```
 
 ```{r}
 # SVM
 
-fitControl <- trainControl(method="cv",number=5)
+fitControl <- trainControl(method = "cv", number = 5)
 
-model_svm <- train(band_type ~ ., data =
-trainData, method = "svmLinear", trControl = fitControl, tuneGrid = data.frame(C=0.1))
+model_svm <- train(
+  band_type ~ .,
+  data =
+    trainData,
+  method = "svmLinear",
+  trControl = fitControl,
+  tuneGrid = data.frame(C = 0.1)
+)
 print(model_svm)
 
-print(confusionMatrix(data = predict(model_svm, newdata =
-testData),reference = testData$band_type, positive = "NOBAND"))
+print(confusionMatrix(
+  data = predict(model_svm, newdata =
+                   testData),
+  reference = testData$band_type,
+  positive = "NOBAND"
+))
 ```
+
+
+```{r neural network model}
+
+numFolds <-
+  trainControl(
+    method = 'cv',
+    number = 10,
+    classProbs = TRUE,
+    verboseIter = TRUE,
+    summaryFunction = twoClassSummary,
+    preProcOptions = list(
+      thresh = 0.75,
+      ICAcomp = 3,
+      k = 5
+    )
+  )
+fit2 <-
+  train(
+    band_type ~ . - band_type,
+    data = trainData,
+    method = 'nnet',
+    preProcess = c('center', 'scale'),
+    trControl = numFolds,
+    tuneGrid = expand.grid(size = c(10), decay = c(0.1))
+  )
+
+results1 <- predict(fit2, newdata = testData)
+conf1 <-
+  confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
+conf1
+
+probs <- predict(fit2, newdata = testData, type = 'prob')
+probs
+
+
+```
+
+
+
+
+
+
+
+
 
 
 ```{r bands.ct}
 require(rpart)
 library(rpart.plot)
 set.seed(123456)
-bands.ct <- rpart(band_type ~ ., method = "class", data = bands, control = rpart.control(minsplit = 4, 
-    cp = 1e-05), model = TRUE)
+bands.ct <-
+  rpart(
+    band_type ~ .,
+    method = "class",
+    data = bands,
+    control = rpart.control(minsplit = 4,
+                            cp = 1e-05),
+    model = TRUE
+  )
 
 summary(bands.ct)
 
-rpart.plot(bands.ct, box.palette="RdBu", nn=FALSE)
+rpart.plot(bands.ct, box.palette = "RdBu", nn = FALSE)
 
 # par(mar = c(0.5, 1, 0.5, 1))
 # plot(bands.ct, uniform = TRUE)
@@ -495,19 +584,32 @@ rpart.plot(bands.ct, box.palette="RdBu", nn=FALSE)
 
 ```{r bands.par}
 
+
 require(lattice)
 
 trellis.par.set(col.whitebg())
-plot.bands.par <- xyplot(roller_durometer ~ viscosity, bands, groups = band_type, pch = 16, 
-    col = c("red", "green"), panel = function(x, y, groups, ...) {
-        panel.superpose(x, y, groups, ...)
-        panel.abline(v = 2.45, lty = 2)
-        panel.segments(2.45, 1.75, max(x) * 2, 1.75, lty = 2)
-        panel.segments(4.95, min(y) * -2, 4.95, 1.75, lty = 2)
-        panel.segments(2.45, 1.65, 4.95, 1.65, lty = 2)
-        panel.segments(4.95, 1.55, max(x) * 2, 1.55, lty = 2)
-    }, key = list(columns = 3, col = c("red", "green"), text = list(c("BAND", 
-        "NOBAND"))))
+plot.bands.par <-
+  xyplot(
+    roller_durometer ~ viscosity,
+    bands,
+    groups = band_type,
+    pch = 16,
+    col = c("red", "green"),
+    panel = function(x, y, groups, ...) {
+      panel.superpose(x, y, groups, ...)
+      panel.abline(v = 2.45, lty = 2)
+      panel.segments(2.45, 1.75, max(x) * 2, 1.75, lty = 2)
+      panel.segments(4.95, min(y) * -2, 4.95, 1.75, lty = 2)
+      panel.segments(2.45, 1.65, 4.95, 1.65, lty = 2)
+      panel.segments(4.95, 1.55, max(x) * 2, 1.55, lty = 2)
+    },
+    key = list(
+      columns = 3,
+      col = c("red", "green"),
+      text = list(c("BAND",
+                    "NOBAND"))
+    )
+  )
 print(plot.bands.par)
 
 printcp(bands.ct)
@@ -517,19 +619,40 @@ plotcp(bands.ct)
 
 # pruning trees
 par(pty = "s")
-with(bands.ct, plot(cptable[, 3], xlab = "Tree Number", ylab = "Resubstitution Error (R)", 
-    type = "b"))
+with(
+  bands.ct,
+  plot(
+    cptable[, 3],
+    xlab = "Tree Number",
+    ylab = "Resubstitution Error (R)",
+    type = "b"
+  )
+)
 
 par(pty = "s")
-with(bands.ct, plot(cptable[, 4], xlab = "Tree Number", ylab = "Cross-Validated Error (R(cv))", 
-    type = "b"))
+with(
+  bands.ct,
+  plot(
+    cptable[, 4],
+    xlab = "Tree Number",
+    ylab = "Cross-Validated Error (R(cv))",
+    type = "b"
+  )
+)
 
 par(pty = "s")
 plotcp(bands.ct)
 with(bands.ct, {
-    lines(cptable[, 2] + 1, cptable[, 3], type = "b", col = "red")
-    legend(3, 1, c("Resub. Error", "CV Error", "min(CV Error)+1SE"), lty = c(1, 
-        1, 2), col = c("red", "black", "black"), bty = "n")
+  lines(cptable[, 2] + 1, cptable[, 3], type = "b", col = "red")
+  legend(
+    3,
+    1,
+    c("Resub. Error", "CV Error", "min(CV Error)+1SE"),
+    lty = c(1,
+            1, 2),
+    col = c("red", "black", "black"),
+    bty = "n"
+  )
 })
 
 bands.prune <- prune(bands.ct, cp = 0.1)
@@ -540,17 +663,5 @@ bands.pred <- predict(bands.prune, type = "class")
 table(bands.pred, bands$band_type)
 ```
 
-```{r neural network model}
 
-require(nnet)
-
-bands.net <- nnet(band_type ~ ., data = bands, size = 2, rang = 0.1, decay = 5e-04, 
-    Hess = T, maxit = 200)
-
-eigen(bands.net$Hess, T)$values
-
-library(NeuralNetTools)
-par(mar = numeric(4), family = "serif")
-plotnet(bands.net, pos_col = "darkgreen", neg_col = "darkblue")
-```
 
