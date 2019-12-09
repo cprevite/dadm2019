@@ -220,6 +220,13 @@ bands <-
   )]
 ```
 
+```{r}
+# replace missing values with knn 
+# we have to decide if we want to reèlace only factor or all variables with this method...
+library("VIM")
+bands <- kNN(bands, k=10)
+```
+
 
 ```{r}
 
@@ -261,7 +268,7 @@ plot(boruta_test, xlab = "", xaxt = "n")
 lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
   boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
 names(lz) <- colnames(boruta_test$ImpHistory)
-Labels <- sort(sapply(lz, median))
+Labels <- sort(sapply(lz, median)) 
 axis(
   side = 1,
   las = 2,
