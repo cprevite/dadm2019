@@ -26,9 +26,9 @@ library(DT)
 library(dplyr)
 library(Boruta)
 library(corrr)
+library(tidyverse)
 
 ```
-
 
 
 
@@ -76,11 +76,6 @@ bands[,cols_numeric] = apply(bands[,cols_numeric], 2, function(x) as.numeric(as.
 bands <- as.data.frame(lapply(bands,function(x) 
   if(is.factor(x)) factor(toupper(x)) 
   else(x)))
-
-#change class to date for data variable 
-bands <- transform(bands, date = as.Date(as.character(date), "%Y%m%d"))
-
-
 
 
 ```
@@ -162,7 +157,7 @@ percentage.plot
 
 
 ```{r}
-library(tidyverse)
+
 
 row.plot <- bands %>%
   mutate(id = row_number()) %>%
@@ -233,42 +228,6 @@ bands <- knnImputation(bands, k=10)
 anyNA(bands)
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-
-# # create de mode function
-# Mode <- function(x) {
-#   ux <- unique(x)
-#   ux[which.max(tabulate(match(x, ux)))]
-# }
-# 
-# #replace missing values: mean for numerical variables and mode for the categorical ones
-# bands<- as.data.frame( lapply(bands, function(x) {
-#     if(is.factor(x)) replace(x, is.na(x), Mode(na.omit(x)))
-#     else if(is.numeric(x)) replace(x, is.na(x), mean(x, na.rm=TRUE))
-#     else x
-# }))
-
-
-
-
-
-```
 
 
 
