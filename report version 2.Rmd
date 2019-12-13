@@ -393,6 +393,14 @@ bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 
 ## MODELS
 
+```{r}
+#normalize data
+# doesn't change the results so we will not keep the modifications
+b.process <- preProcess(bands, method= 'range')
+b <- predict(b.process, newdata = bands)
+```
+
+
 # test and train sets
 ```{r}
 
@@ -402,13 +410,13 @@ library(caret)
 set.seed(100)
 
 # Step 1: Get row numbers for the training data
-trainRowNumbers <- createDataPartition(bands$band_type, p=0.75, list=FALSE)
+trainRowNumbers <- createDataPartition(b$band_type, p=0.75, list=FALSE)
 
 # Step 2: Create the training  dataset
-trainData <- bands[trainRowNumbers,]
+trainData <- b[trainRowNumbers,]
 
 # Step 3: Create the test dataset
-testData <- bands[-trainRowNumbers,]
+testData <- b[-trainRowNumbers,]
 ```
 
 
@@ -469,7 +477,7 @@ library(randomForest)
 library(funModeling)
 # Call the function:
 # delete cylinder_no because too much levels for the model
-integ_mod_1 <- data_integrity_model(data = bands[,-1], model_name = "randomForest")
+integ_mod_1 <- data_integrity_model(data = b[,-1], model_name = "randomForest")
 integ_mod_1$data_ok
 
 
@@ -526,7 +534,7 @@ print(mat)
 ```
 
 ```{r}
-# SVM
+# SVM1
 
 fitControl <- trainControl(method = "cv", number = 5)
 
@@ -536,12 +544,55 @@ model_svm <- train(
     trainData,
   method = "svmLinear",
   trControl = fitControl,
-  tuneGrid = data.frame(C = 0.1)
+  tuneGrid = data.frame(C = 10)
 )
 print(model_svm)
 
 print(confusionMatrix(
   data = predict(model_svm, newdata =
+                   testData),
+  reference = testData$band_type,
+  positive = "NOBAND"
+))
+
+
+
+
+```
+
+```{r}
+#SVM2
+
+
+model_svm2 <- train(band_type ~ .,
+                          data = trainData, 
+                          method = "svmRadialCost",
+                          preProcess = "range",
+                          trace = FALSE,
+                          trControl = trainControl(method = "repeatedcv", number = 10, repeats = 10, 
+                                                  verboseIter = FALSE))
+model_svm2
+
+plot(model_svm2)
+
+C <- c(0.25, 0.1, 0.5, 1, 10, 100)
+sigma <- c(0.0001, 0.001, 0.01, 0.1, 1)
+gr.radial<-expand.grid(C = C, sigma = sigma)
+
+model_svm3<- train(band_type ~ .,
+                          data = trainData,
+                          method = "svmRadial",
+                          preProcess = "range",
+                          trace=FALSE,
+                          trControl = trainControl(method = "repeatedcv", number = 10, repeats = 10, 
+                                                  verboseIter = FALSE),
+                          tuneGrid=gr.radial)
+model_svm3
+
+plot(model_svm3)
+
+print(confusionMatrix(
+  data = predict(model_svm3, newdata =
                    testData),
   reference = testData$band_type,
   positive = "NOBAND"
