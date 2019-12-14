@@ -27,6 +27,10 @@ library(dplyr)
 library(Boruta)
 library(corrr)
 library(tidyverse)
+library(caret)
+library(randomForest)
+library(funModeling)
+library(gmodels)
 
 ```
 
@@ -126,34 +130,6 @@ aggr(bands[, which(sapply(bands, function(x)all(any(is.na(x)))) == TRUE)], sortV
 
 ```
 
-```{r}
-missing.values <- bands %>%
-  gather(key = "key", value = "val") %>%
-  mutate(isna = is.na(val)) %>%
-  group_by(key) %>%
-  mutate(total = n()) %>%
-  group_by(key, total, isna) %>%
-  summarise(num.isna = n()) %>%
-  mutate(pct = num.isna / total * 100)
-
-
-levels <-
-    (missing.values  %>% filter(isna == T) %>% arrange(desc(pct)))$key
-
-percentage.plot <- missing.values %>%
-      ggplot() +
-        geom_bar(aes(x = reorder(key, desc(pct)), 
-                     y = pct, fill=isna), 
-                 stat = 'identity', alpha=0.8) +
-      scale_x_discrete(limits = levels) +
-      scale_fill_manual(name = "", 
-                        values = c('steelblue', 'tomato3'), labels = c("Present", "Missing")) +
-      coord_flip() +
-      labs(title = "Percentage of missing values", x =
-             'Variable', y = "% of missing values")
-
-percentage.plot
-```
 
 
 ```{r}
@@ -190,9 +166,10 @@ bands %>%
 
 
 plot_intro(bands)
-
-bands %>% explore_all(target = band_type)
 ```
+
+
+
 
 
 ```{r}
@@ -334,15 +311,14 @@ bands.band <- filter(bands, bands$band_type == 'BAND')
 
 bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 
-# summary(bands.band)
-# summary(bands.noband)
-
-
-
 
 ```
 
+```{r, fig.width = 10, fig.height = 20}
 
+bands%>%
+  explore_all(target = band_type)
+```
 
 
 
@@ -355,27 +331,25 @@ bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 ```{r}
 #normalize data
 # doesn't change the results so we will not keep the modifications
-b.process <- preProcess(bands, method= 'range')
-b <- predict(b.process, newdata = bands)
+# b.process <- preProcess(bands, method= 'range')
+# b <- predict(b.process, newdata = bands)
 ```
 
 
 # test and train sets
 ```{r}
 
-library(caret)
-
 # Create the training and test datasets
 set.seed(100)
 
 # Step 1: Get row numbers for the training data
-trainRowNumbers <- createDataPartition(b$band_type, p=0.75, list=FALSE)
+trainRowNumbers <- createDataPartition(bands$band_type, p=0.75, list=FALSE)
 
 # Step 2: Create the training  dataset
-trainData <- b[trainRowNumbers,]
+trainData <- bands[trainRowNumbers,]
 
 # Step 3: Create the test dataset
-testData <- b[-trainRowNumbers,]
+testData <- bands[-trainRowNumbers,]
 ```
 
 
@@ -394,11 +368,12 @@ ctrl <- rfeControl(
   repeats = 5,
   verbose = FALSE
 )
-trainData <- trainData[, -1]
+trainDataMars <- trainData[, -1]
+testDataMars <- testData[, -1]
 
 lmProfile <- rfe(
-  x = trainData,
-  y = trainData$band_type,
+  x = trainDataMars,
+  y = trainDataMars$band_type,
   sizes = subsets,
   rfeControl = ctrl
 )
@@ -410,7 +385,7 @@ lmProfile
 set.seed(100)
 
 # Train the model using randomForest and predict on the training data itself.
-model_mars = train(band_type ~ ., data = trainData, method = 'earth')
+model_mars = train(band_type ~ ., data = trainDataMars, method = 'earth')
 fitted <- predict(model_mars)
 varimp_mars <- varImp(model_mars)
 plot(varimp_mars, main = "Variable Importance with MARS")
@@ -418,11 +393,11 @@ plot(varimp_mars, main = "Variable Importance with MARS")
 
 model_mars
 
-predicted <- predict(model_mars, testData)
+predicted <- predict(model_mars, testDataMars)
 predicted
 
 confusionMatrix(
-  reference = testData$band_type,
+  reference = testDataMars$band_type,
   data = predicted,
   mode = 'everything',
   positive = 'NOBAND'
@@ -432,11 +407,13 @@ confusionMatrix(
 ```{r}
 # random forest
 
-library(randomForest)
-library(funModeling)
+
 # Call the function:
 # delete cylinder_no because too much levels for the model
-integ_mod_1 <- data_integrity_model(data = b[,-1], model_name = "randomForest")
+trainDataRF <- trainData[, -1]
+testDataRF <- testData[, -1]
+
+integ_mod_1 <- data_integrity_model(data = bands[,-1], model_name = "randomForest")
 integ_mod_1$data_ok
 
 
@@ -444,7 +421,7 @@ integ_mod_1$data_ok
 integ_mod_1
 
 model_rf <- randomForest(formula(band_type ~.), 
-                          data= trainData, 
+                          data= trainDataRF, 
                           ntree=500, mtry=4, 
                           importance=TRUE, 
                           localImp=TRUE,
@@ -455,9 +432,7 @@ print(model_rf)
 head(round(importance(model_rf), 2))
 varImpPlot(model_rf)
 
-library(gmodels)
-
-rf.pred<-predict(model_rf, testData, type="class")
+rf.pred<-predict(model_rf, testDataRF, type="class")
 rf.pred
 
 table(true=testData$band_type, pred = rf.pred)
@@ -466,6 +441,8 @@ CrossTable(x=testData$band_type, y=rf.pred, prop.chisq=FALSE)
 
 confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
 ```
+
+
 
 
 ```{r}
@@ -490,6 +467,9 @@ mat <-
                   reference = testData$band_type,
                   positive = "NOBAND")
 print(mat)
+
+# the results are very poor, so we will focus on other model, because this one would be difficult to improve
+
 ```
 
 ```{r}
@@ -506,6 +486,11 @@ model_svm <- train(
   tuneGrid = data.frame(C = 10)
 )
 print(model_svm)
+
+varimp_svm <- varImp(model_svm)
+varimp_svm
+plot(varimp_svm, main = "Variable Importance with SVM")
+
 
 print(confusionMatrix(
   data = predict(model_svm, newdata =
@@ -534,57 +519,85 @@ model_svm2
 
 plot(model_svm2)
 
-C <- c(0.25, 0.1, 0.5, 1, 10, 100)
-sigma <- c(0.0001, 0.001, 0.01, 0.1, 1)
-gr.radial<-expand.grid(C = C, sigma = sigma)
-
-model_svm3<- train(band_type ~ .,
-                          data = trainData,
-                          method = "svmRadial",
-                          preProcess = "range",
-                          trace=FALSE,
-                          trControl = trainControl(method = "repeatedcv", number = 10, repeats = 10, 
-                                                  verboseIter = FALSE),
-                          tuneGrid=gr.radial)
-model_svm3
-
-plot(model_svm3)
-
 print(confusionMatrix(
-  data = predict(model_svm3, newdata =
+  data = predict(model_svm2, newdata =
                    testData),
   reference = testData$band_type,
   positive = "NOBAND"
 ))
+
+
+
+# # this one takes a lot of time
+# C <- c(0.25, 0.1, 0.5, 1)
+# sigma <- c(0.01, 0.1, 1)
+# gr.radial<-expand.grid(C = C, sigma = sigma)
+# 
+# model_svm3<- train(band_type ~ .,
+#                           data = trainData,
+#                           method = "svmRadial",
+#                           preProcess = "range",
+#                           trace=FALSE,
+#                           trControl = trainControl(method = "repeatedcv", number = 10, repeats = 5, 
+#                                                   verboseIter = FALSE),
+#                           tuneGrid=gr.radial)
+# 
+# 
+# model_svm3
+# 
+# plot(model_svm3)
+# 
+# print(confusionMatrix(
+#   data = predict(model_svm3, newdata =
+#                    testData),
+#   reference = testData$band_type,
+#   positive = "NOBAND"
+# ))
 ```
 
 
 ```{r neural network model}
 
-numFolds <-
-  trainControl(
-    method = 'cv',
-    number = 10,
-    classProbs = TRUE,
-    verboseIter = TRUE,
-    summaryFunction = twoClassSummary,
-    preProcOptions = list(
-      thresh = 0.75,
-      ICAcomp = 3,
-      k = 5
-    )
-  )
-fit2 <-
-  train(
-    band_type ~ . - band_type,
-    data = trainData,
-    method = 'nnet',
-    preProcess = c('center', 'scale'),
-    trControl = numFolds,
-    tuneGrid = expand.grid(size = c(10), decay = c(0.1))
-  )
+# numFolds <-
+#   trainControl(
+#     method = 'cv',
+#     number = 1,
+#     classProbs = TRUE,
+#     verboseIter = TRUE,
+#     summaryFunction = twoClassSummary,
+#     preProcOptions = list(
+#       thresh = 0.75,
+#       ICAcomp = 3,
+#       k = 5
+#     )
+#   )
+# fit2 <-
+#   train(
+#     band_type ~ . - band_type,
+#     data = trainData,
+#     method = 'nnet',
+#     preProcess = c('center', 'scale'),
+#     trControl = numFolds,
+#     tuneGrid = expand.grid(size = c(10), decay = c(0.1))
+#   )
 
-results1 <- predict(fit2, newdata = testData)
+# delete cylinder_no because too much variation
+trainDataNnet <- trainData[, -c(1)]
+testDataNnet <- testData[, -c(1)]
+
+
+model_nnet <- caret::train(band_type ~ ., data = trainDataNnet, method = "nnet", preProcess = "range", 
+    trace = FALSE, trControl = trainControl(method = "cv"))
+
+model_nnet
+
+varimp_nnet <- varImp(model_nnet)
+varimp_nnet
+plot(varimp_nnet, main = "Variable Importance with Nnet")
+
+results1 <- predict(model_nnet, newdata = testDataNnet)
+results1
+
 conf1 <-
   confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
 conf1
