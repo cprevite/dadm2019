@@ -188,7 +188,9 @@ bands <-
       "date",
       "ink_color",
       "customer", 
-      'cylinder_division'
+      'cylinder_division',
+      'cylinder_no',
+      'job_number'
       
     )
   )]
@@ -368,8 +370,6 @@ ctrl <- rfeControl(
   repeats = 5,
   verbose = FALSE
 )
-trainDataMars <- trainData[, -1]
-testDataMars <- testData[, -1]
 
 lmProfile <- rfe(
   x = trainDataMars,
@@ -409,11 +409,8 @@ confusionMatrix(
 
 
 # Call the function:
-# delete cylinder_no because too much levels for the model
-trainDataRF <- trainData[, -1]
-testDataRF <- testData[, -1]
 
-integ_mod_1 <- data_integrity_model(data = bands[,-1], model_name = "randomForest")
+integ_mod_1 <- data_integrity_model(data = bands, model_name = "randomForest")
 integ_mod_1$data_ok
 
 
@@ -421,7 +418,7 @@ integ_mod_1$data_ok
 integ_mod_1
 
 model_rf <- randomForest(formula(band_type ~.), 
-                          data= trainDataRF, 
+                          data= trainData, 
                           ntree=500, mtry=4, 
                           importance=TRUE, 
                           localImp=TRUE,
@@ -432,7 +429,7 @@ print(model_rf)
 head(round(importance(model_rf), 2))
 varImpPlot(model_rf)
 
-rf.pred<-predict(model_rf, testDataRF, type="class")
+rf.pred<-predict(model_rf, testData, type="class")
 rf.pred
 
 table(true=testData$band_type, pred = rf.pred)
@@ -581,12 +578,10 @@ print(confusionMatrix(
 #     tuneGrid = expand.grid(size = c(10), decay = c(0.1))
 #   )
 
-# delete cylinder_no because too much variation
-trainDataNnet <- trainData[, -c(1)]
-testDataNnet <- testData[, -c(1)]
 
 
-model_nnet <- caret::train(band_type ~ ., data = trainDataNnet, method = "nnet", preProcess = "range", 
+
+model_nnet <- caret::train(band_type ~ ., data = trainData, method = "nnet", preProcess = "range", 
     trace = FALSE, trControl = trainControl(method = "cv"))
 
 model_nnet
@@ -595,17 +590,83 @@ varimp_nnet <- varImp(model_nnet)
 varimp_nnet
 plot(varimp_nnet, main = "Variable Importance with Nnet")
 
-results1 <- predict(model_nnet, newdata = testDataNnet)
+results1 <- predict(model_nnet, newdata = testData)
 results1
 
 conf1 <-
   confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
 conf1
 
-probs <- predict(fit2, newdata = testData, type = 'prob')
-probs
 
 
+```
+
+```{r}
+# cylinder_no with only the first letter --> no significant results
+#bands$cylinder_no <- substr(bands$cylinder_no, 0, 1)
+
+library(rpart)
+# Build the model
+set.seed(123)
+model_cart <- rpart(band_type ~., data = bands, method = "class")  
+model_cart
+summary(model_cart)
+
+# pruning
+par(pty = "s")
+with(model_cart, plot(cptable[, 3], xlab = "Tree Number", ylab = "Resubstitution Error (R)", 
+    type = "b"))
+
+# Plot the trees
+rpart.plot(model_cart, box.palette = "RdBu", nn = FALSE)
+
+printcp(model_cart)
+
+
+
+cart_pred <- predict(model_cart, type = 'class')
+table(cart_pred, bands$band_type)
+cm_cart <- confusionMatrix(cart_pred,bands$band_type, positive = 'NOBAND')
+cm_cart
+predict_cart <- predict(model_cart, newdata = testData)
+
+
+#pruning
+cart_prune <- prune(model_cart, cp = 0.01)
+
+
+```
+
+```{r}
+
+# linear discriminant analysis
+
+trainDataLda <- trainData[, -2]
+testDataLda <- testData[, -2]
+
+# Estimate preprocessing parameters
+preproc.param <- trainDataLda %>% 
+  preProcess(method = c("center", "scale"))
+# Transform the data using the estimated parameters
+train.transformed <- preproc.param %>% predict(trainDataLda)
+test.transformed <- preproc.param %>% predict(testDataLda)
+
+
+
+library(MASS)
+# Fit the model
+model_lda <- lda(band_type ~., data = train.transformed)
+# Make predictions
+predictions <- model_lda %>% predict(test.transformed)
+# Model accuracy
+mean(predictions$class==test.transformed$band_type)
+
+model_lda
+plot(model_lda)
+
+# lda.data <- cbind(train.transformed, predict(model_lda)$x)
+# ggplot(lda.data, aes(LD1, LD2)) +
+#   geom_point(aes(color = band_type))
 ```
 
 
@@ -615,114 +676,6 @@ probs
 
 
 
-
-
-```{r bands.ct}
-require(rpart)
-library(rpart.plot)
-set.seed(123456)
-bands.ct <-
-  rpart(
-    band_type ~ .,
-    method = "class",
-    data = bands,
-    control = rpart.control(minsplit = 4,
-                            cp = 1e-05),
-    model = TRUE
-  )
-
-summary(bands.ct)
-
-rpart.plot(bands.ct, box.palette = "RdBu", nn = FALSE)
-
-# par(mar = c(0.5, 1, 0.5, 1))
-# plot(bands.ct, uniform = TRUE)
-# text(bands.ct, use.n = TRUE, all = TRUE, cex = 0.6)
-
-
-```
-
-
-```{r bands.par}
-
-
-require(lattice)
-
-trellis.par.set(col.whitebg())
-plot.bands.par <-
-  xyplot(
-    roller_durometer ~ viscosity,
-    bands,
-    groups = band_type,
-    pch = 16,
-    col = c("red", "green"),
-    panel = function(x, y, groups, ...) {
-      panel.superpose(x, y, groups, ...)
-      panel.abline(v = 2.45, lty = 2)
-      panel.segments(2.45, 1.75, max(x) * 2, 1.75, lty = 2)
-      panel.segments(4.95, min(y) * -2, 4.95, 1.75, lty = 2)
-      panel.segments(2.45, 1.65, 4.95, 1.65, lty = 2)
-      panel.segments(4.95, 1.55, max(x) * 2, 1.55, lty = 2)
-    },
-    key = list(
-      columns = 3,
-      col = c("red", "green"),
-      text = list(c("BAND",
-                    "NOBAND"))
-    )
-  )
-print(plot.bands.par)
-
-printcp(bands.ct)
-
-par(pty = "s")
-plotcp(bands.ct)
-
-# pruning trees
-par(pty = "s")
-with(
-  bands.ct,
-  plot(
-    cptable[, 3],
-    xlab = "Tree Number",
-    ylab = "Resubstitution Error (R)",
-    type = "b"
-  )
-)
-
-par(pty = "s")
-with(
-  bands.ct,
-  plot(
-    cptable[, 4],
-    xlab = "Tree Number",
-    ylab = "Cross-Validated Error (R(cv))",
-    type = "b"
-  )
-)
-
-par(pty = "s")
-plotcp(bands.ct)
-with(bands.ct, {
-  lines(cptable[, 2] + 1, cptable[, 3], type = "b", col = "red")
-  legend(
-    3,
-    1,
-    c("Resub. Error", "CV Error", "min(CV Error)+1SE"),
-    lty = c(1,
-            1, 2),
-    col = c("red", "black", "black"),
-    bty = "n"
-  )
-})
-
-bands.prune <- prune(bands.ct, cp = 0.1)
-summary(bands.prune)
-
-library(knitr)
-bands.pred <- predict(bands.prune, type = "class")
-table(bands.pred, bands$band_type)
-```
 
 
 
