@@ -490,9 +490,10 @@ integ_mod_1$data_ok
 # Any errors ?
 integ_mod_1
 
+set.seed(12345)
 model_rf <- randomForest(formula(band_type ~.), 
                           data= trainData, 
-                          ntree=500, mtry=4, 
+                          ntree=400, mtry=3, 
                           importance=TRUE, 
                           localImp=TRUE,
                           na.action=na.roughfix,
@@ -510,6 +511,53 @@ table(true=testData$band_type, pred = rf.pred)
 CrossTable(x=testData$band_type, y=rf.pred, prop.chisq=FALSE)
 
 confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
+```
+
+```{r}
+# check RF with bandsSmall --> in my opinion the results are poor (76% accuracy vs 82%)
+
+bandsSmall <- bands[c(1,2,4,6,7,9,12,16,18,23,24,26)] # only the elbow from Boruta and important variable from RF
+# Create the training and test datasets
+set.seed(100)
+
+# Step 1: Get row numbers for the training data
+trainRowNumbersSmall <- createDataPartition(bandsSmall$band_type, p=0.75, list=FALSE)
+
+# Step 2: Create the training  dataset
+trainDataSmall <- bandsSmall[trainRowNumbers,]
+
+# Step 3: Create the test dataset
+testDataSmall <- bandsSmall[-trainRowNumbers,]
+
+# Call the function:
+
+integ_mod_2 <- data_integrity_model(data = bandsSmall, model_name = "randomForest")
+integ_mod_2$data_ok
+
+
+# Any errors ?
+integ_mod_2
+
+model_rf2 <- randomForest(formula(band_type ~.), 
+                          data= trainDataSmall, 
+                          ntree=500, mtry=4, 
+                          importance=TRUE, 
+                          localImp=TRUE,
+                          na.action=na.roughfix,
+                          replace=FALSE)
+print(model_rf2)
+
+head(round(importance(model_rf2), 2))
+varImpPlot(model_rf2)
+
+rf.pred<-predict(model_rf2, testDataSmall, type="class")
+rf.pred
+
+table(true=testDataSmall$band_type, pred = rf.pred)
+
+CrossTable(x=testDataSmall$band_type, y=rf.pred, prop.chisq=FALSE)
+
+confusionMatrix(rf.pred, testDataSmall$band_type, positive = 'NOBAND')
 ```
 
 
@@ -719,7 +767,7 @@ library(rpart)
 library(rpart.plot)
 # Build the model
 set.seed(123)
-model_cart <- rpart(band_type ~., data = bands, method = "class")  
+model_cart <- rpart(band_type ~., data = trainData, method = "class")  
 model_cart
 summary(model_cart)
 
@@ -734,16 +782,21 @@ rpart.plot(model_cart, box.palette = "RdBu", nn = FALSE)
 printcp(model_cart)
 
 
-
-cart_pred <- predict(model_cart, type = 'class')
-table(cart_pred, bands$band_type)
-cm_cart <- confusionMatrix(cart_pred,bands$band_type, positive = 'NOBAND')
-cm_cart
-predict_cart <- predict(model_cart, newdata = testData)
-
-
 #pruning
 cart_prune <- prune(model_cart, cp = 0.01)
+
+
+
+cart.pred<-predict(model_cart, testData, type="class")
+cart.pred
+
+table(true=testData$band_type, pred = cart.pred)
+
+CrossTable(x=testData$band_type, y=cart.pred, prop.chisq=FALSE)
+
+confusionMatrix(cart.pred, testData$band_type, positive = 'NOBAND')
+
+predict_cart <- predict(model_cart, newdata = testData)
 
 
 ```
