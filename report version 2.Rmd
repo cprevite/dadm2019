@@ -373,12 +373,6 @@ plot_density(bands)
 
 plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
-plot_correlation(bands, type= 'c', cor_args = list( 'use' = 'complete.obs'))
-
-
-
-#ggpairs(bands[,-40], ggplot2::aes(colour=band_type))
-
 # split data in 2
 bands.band <- filter(bands, bands$band_type == 'BAND')
 
