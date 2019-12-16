@@ -32,6 +32,7 @@ library(caret)
 library(randomForest)
 library(funModeling)
 library(gmodels)
+library(data.table)
 
 ```
 
@@ -249,7 +250,7 @@ bands <-
     )
   )]
 
-bands$cylinder_no <- substr(bands$cylinder_no, 0, 1)
+bands$cylinder_no <- as.factor(substr(bands$cylinder_no, 0, 1))
 ```
 
 
@@ -401,7 +402,6 @@ bands%>%
 
 # Fitting the models
 
-- adapt train and testData to final dataset (we really have to pay attention to that)
 
 ```{r}
 #normalize data
@@ -764,8 +764,8 @@ cart_prune <- prune(model_cart, cp = 0.01)
 
 # linear discriminant analysis
 
-trainDataLda <- trainData[, -2]
-testDataLda <- testData[, -2]
+trainDataLda <- trainData[, -18]
+testDataLda <- testData[, -18]
 
 # Estimate preprocessing parameters
 preproc.param <- trainDataLda %>% 
