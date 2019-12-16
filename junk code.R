@@ -58,3 +58,17 @@ percentage.plot <- missing.values %>%
 
 percentage.plot
 ```
+
+
+In this part we use the'aggr' function Calculate or plot the amount of missing/imputed values in each variable and the amount of missing/imputed values in certain combinations of variables.
+```{r}
+
+library(VIM)
+aggr(bands[, which(sapply(bands, function(x)all(any(is.na(x)))) == TRUE)], sortVar=TRUE, cex.lab=0.8, cex.axis=0.9,  numbers = TRUE, combined = TRUE,  oma = c(8,1,1,1))
+
+
+```
+
+
+
+
