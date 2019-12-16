@@ -1,5 +1,5 @@
 --- 
-title: 'Report: Text mining'
+title: 'Report: Data Analytics for Decision Making'
 author: "Claudio Previte and Ana -Maria Casian"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -8,6 +8,7 @@ output:
     toc_float:
       collapsed: true
       smooth_scroll: true
+    fig_caption: yes
 ---
 
 
@@ -40,36 +41,68 @@ library(gmodels)
 
 ## Challenges
 
+- describe the problem
+- describe the dataset
+- response variable
+
 ## Analysis
+
+- classification model tested
+- which ones are more adapted to the problem
 
 ## Results
 
+- show results, accuracies
+- recommendations and implementations
+
+
 # General
+
+- purpose of the course
+- the benefit of Machine Learning in general
 
 ## Source of data
 
+- where the data comes from
+- quick description of the data
+
+
 ## Case description
+
+- describe the problem
+- benefit of Machine Learning in this special case
 
 # Data processing
 
+- explain the purpose of data cleaning
+- why it is so important in data analytics
+
 
 ## Loading data
+- 
 
 ```{r}
 bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 ```
 
 
-## Data visualisation
+## Data visualization
 
-```{r}
+The first task to analyze a dataset is to have a look at all the variables and their values. 
+
+```{r str, echo=FALSE, fig.cap= 'Figure 1'}
 str(bands)
 ```
 
+We notice that there are some numerical and nominal attributes. To be precise, 20 numerical variables and 19 nominal variables, including the response variable, band_type. There are some nominal variables with a high number of levels, which means that they will not be really useful for a potential classification task; we will see further what to do with these ones. On the other hand, variables with only one level will be deleted, because they don't bring any information for the classification. We notice also that the dataset is not standardized, which means that the value are not recorded the same way depending on the observations; it appears that sometimes, the values are in lower cases and sometimes in upper cases, so we have to standardize it to get real insights from the data. Important informations comes from the missing values, which are numerous. We will discuss also further what to do with these ones. 
 
-### First data transformation to continue looking at the vars
+As we were aware, this dataset needs a lot of cleaning before to be analyzed.
 
-```{r }
+### Standardization of the dataset
+
+As seen before, the data are not recorded in the same way for all the observations. Some observations are in upper cases and some are in lower cases. This can occur when many different people are in charge to record the data or depending the location where the observations comes from. This problem can lead to a bad data perception, so we decided to put all the values in upper cases. 
+
+```{r standardization, message=FALSE, warning=FALSE, include=FALSE}
 
 
 #change class to numeric for numeric variables 
@@ -84,55 +117,41 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 ```
 
+Here is an overview of the dataset:
 
-
-
-```{r}
+```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable'}
 datatable(bands)
+```
 
-bands %>% 
-  introduce() %>%
-  t()%>%
-  kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
-  footnote(symbol = strwrap("Sort description of the data"))
+## Missing values
 
+We will focus now on the missing values, which makes this dataset so special. In fact we observe a lot of missing value and we have to decide what to do with them. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 3'}
+# bands %>% 
+#   introduce() %>%
+#   t()%>%
+#   kable() %>%
+#   kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")
 
 plot_intro(bands)
 
-summary(bands)
+```
 
-bands %>% 
-  explore::describe() %>%
-  kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")
+We see from Figure 3, that 4.6 % of the data are missing and the complete rows, i.e. an observation containing a value for all the variables, represent only 51 % of the total observations. From Figure 4, we observe that all the NAs of the bands dataset comes from 28 variables, with a special mention for the **location** variables which counts 156 missing values (almost 30 % percent of the observations are missing). Then, almost 10 variables counts quite the same number of missing value, so we will try to understand if there is a explanation behind this. It should be noted that for these attributes, the percentage of NAs is almost 10 %.  
 
-show_plot(inspect_na(bands), col_palette=2)
+```{r percentage na, fig.cap= 'Figure 4: Prevalence of NAs'}
 
+x<-inspect_na(bands)
+show_plot(x, col_palette=2)
 ```
 
 
-### Check the data structure
+### Structure of the missing values
 
-```{r, message=FALSE, warning=FALSE, include= FALSE}
-str(bands) #this part will not apear in the report, but we should comment about it. This line of code helped us to decide wich data to transform in the first part
+In order to analyze the structure of the missing values, we plot them in rows; that will allow to see if there is a link between the NAs. 
 
-```
-
-### Check the structure of the missing values
-
-In this part we use the'aggr' function Calculate or plot the amount of missing/imputed values in each variable and the amount of missing/imputed values in certain combinations of variables.
-```{r}
-
-library(VIM)
-aggr(bands[, which(sapply(bands, function(x)all(any(is.na(x)))) == TRUE)], sortVar=TRUE, cex.lab=0.8, cex.axis=0.9,  numbers = TRUE, combined = TRUE,  oma = c(8,1,1,1))
-
-
-```
-
-
-
-```{r}
+```{r structure of NAs, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 5: Missing values in rows'}
 
 
 row.plot <- bands %>%
@@ -142,7 +161,7 @@ row.plot <- bands %>%
   ggplot(aes(key, id, fill = isna)) +
     geom_raster(alpha=0.8) +
     scale_fill_manual(name = "",
-        values = c('steelblue', 'tomato3'),
+        values = c('steelblue', 'tomato2'),
         labels = c("Present", "Missing")) +
     labs(x = "Variable",
            y = "Row Number", title = "Missing values in rows") +
@@ -151,8 +170,21 @@ row.plot <- bands %>%
 row.plot
 ```
 
-EDA
-```{r}
+We get some interesting informations from Figure 5; the repartition of missing values seems to be concentrated in the very last observations. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, they decided to not record these specific variables anymore. 13 variables are missing from the 486th observation, which means that we lost a lot of informations. We have to wonder if it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows but would also reduce drastically the number of missing values that we don't have to replace by an imputation method (knn, mean, median...). Keeping them and replacing the missing values for the 13 variables by an imputation method would make any sense as more than 30 % of the variables in the observations are created from assumptions (13 out 40). Based on this point, we decide to delete the last 54 consecutive observations of the dataset, which will give us a dataset with only 485 observations. 
+
+```{r delete last obs, message=FALSE, warning=FALSE}
+#Delete the last rows that have consecutive missing data
+bands <- bands[-c(486:540),]
+```
+
+
+At this point, we can check again the prevalence of missing values: 
+
+```{r percentage na 2, fig.cap= 'Figure 4: Prevalence of NAs'}
+
+x1<-inspect_na(bands)
+show_plot(x1, col_palette=2)
+
 bands %>%
   introduce() %>%
   t() %>%
@@ -160,41 +192,29 @@ bands %>%
   kable_styling(
     bootstrap_options = c("striped", "hover", "condensed", "bordered"),
     full_width = F,
-    position = "center"
-  ) %>%
-  footnote(symbol = strwrap("Short description of the data"))
-
-
-plot_intro(bands)
+    position = "center") 
 ```
 
+- except for location
+consecutive missing -> we take them but set as undefined
+- na for other variables is acceptable 
+- we will use knn for imputation
 
 
 
-
-```{r}
-#Delete the last rows that have consecutive missing data
-bands <- bands[-c(486:540),]
-
+```{r location}
 # replace missing values of "location variable" with value "Undefined"
 bands$location = as.character(bands$location)
 bands$location[is.na(bands$location)] <- "UNDEFINED"
 bands$location = as.factor(bands$location)
 
-# Delete variables that are not needed
-bands <-
-  bands[, which(
-    !names(bands) %in% c(
-      "date",
-      "ink_color",
-      "customer", 
-      'cylinder_division',
-      'cylinder_no',
-      'job_number'
-      
-    )
-  )]
 ```
+
+
+### Imputation of the missing values
+
+- describe knn
+- why it is better than mean
 
 ```{r}
 # replace missing values with knn 
@@ -207,8 +227,64 @@ bands <- knnImputation(bands, k=10)
 anyNA(bands)
 ```
 
+## Selection of the variables
+
+### First elimination
+
+- look at the variable
+- some are useless
+- cylinder_no special
+too many levels but we can keep the first letter as value (the same letter comes from same fabrication so maybe same problem)
+
+```{r delete var}
+# Delete variables that are not needed
+bands <-
+  bands[, which(
+    !names(bands) %in% c(
+      "date", # useless
+      "ink_color", # only 1 level
+      "customer", # don't depend on the printing processus
+      'cylinder_division', # only 1 level
+      'job_number' # too many levels
+    )
+  )]
+
+bands$cylinder_no <- substr(bands$cylinder_no, 0, 1)
+```
 
 
+
+<!-- ```{r} -->
+<!-- bands %>% -->
+<!--   introduce() %>% -->
+<!--   t() %>% -->
+<!--   kable() %>% -->
+<!--   kable_styling( -->
+<!--     bootstrap_options = c("striped", "hover", "condensed", "bordered"), -->
+<!--     full_width = F, -->
+<!--     position = "center")  -->
+
+
+<!-- summary(bands) %>% -->
+<!--   kable() -->
+
+<!-- plot_intro(bands) -->
+
+<!-- bands %>%  -->
+<!--   explore::describe() %>% -->
+<!--   kable() %>% -->
+<!--   kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center") -->
+
+<!-- ``` -->
+
+
+### Boruta test - Second elimination
+
+- objective of boruta
+- explain how it works
+- justify selected parameter 
+- decision to keep only the variable choosen by boruta
+- quick summary of new database after cutting the variables
 
 ```{r}
 
@@ -255,14 +331,6 @@ names_variables_to_keep <- variables_to_keep$Variable
 
 names_variables_to_keep
 
-```
-
-
-# Deleting useless variables
-
-
-```{r}
-
 bands <-
   bands[, which(
     names(bands) %in% names_variables_to_keep
@@ -271,8 +339,9 @@ bands <-
 ```
 
 
+## Outliers
 
-# Outliers. We have generated the boxplot and the summary for all the variables and examinated the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error meassurements and neither error entries in the data
+We have generated the boxplot and the summary for all the variables and examinated the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error meassurements and neither error entries in the data
 
 ```{r, message=FALSE, warning=FALSE, include= FALSE}
 
@@ -286,6 +355,11 @@ for (i in numeric_column) {
 ```
 
 
+# Exploratory Data Analysis
+
+- find an order for the different plot that make sense
+- do not put a plot if it is not useful
+- get insights
 
 ```{r fig.height= 12}
 
@@ -301,10 +375,6 @@ plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 plot_correlation(bands, type= 'c', cor_args = list( 'use' = 'complete.obs'))
 
 
-numeric_column <- names(select_if(bands, is.numeric))
-bands %>% 
-  select(numeric_column, band_type) %>%
-  explore_all(target = band_type)
 
 #ggpairs(bands[,-40], ggplot2::aes(colour=band_type))
 
@@ -318,6 +388,7 @@ bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 
 ```{r, fig.width = 10, fig.height = 20}
 
+
 bands%>%
   explore_all(target = band_type)
 ```
@@ -328,7 +399,9 @@ bands%>%
 
 
 
-## MODELS
+# Fitting the models
+
+- adapt train and testData to final dataset (we really have to pay attention to that)
 
 ```{r}
 #normalize data
@@ -338,7 +411,7 @@ bands%>%
 ```
 
 
-# test and train sets
+## test and train sets
 ```{r}
 
 # Create the training and test datasets
@@ -356,53 +429,59 @@ testData <- bands[-trainRowNumbers,]
 
 
 
-```{r}
-# MARS Multivariate Adaptive Regression Splines
-# recursive feature elimination (RFE)
-set.seed(100)
-options(warn = -1)
+<!-- ```{r} -->
+<!-- # MARS Multivariate Adaptive Regression Splines -->
+<!-- # recursive feature elimination (RFE) -->
+<!-- set.seed(100) -->
+<!-- options(warn = -1) -->
 
-subsets <- c(1:6, 10, 15, 35)
+<!-- subsets <- c(1:6, 10, 15, 35) -->
 
-ctrl <- rfeControl(
-  functions = rfFuncs,
-  method = "repeatedcv",
-  repeats = 5,
-  verbose = FALSE
-)
+<!-- ctrl <- rfeControl( -->
+<!--   functions = rfFuncs, -->
+<!--   method = "repeatedcv", -->
+<!--   repeats = 5, -->
+<!--   verbose = FALSE -->
+<!-- ) -->
 
-lmProfile <- rfe(
-  x = trainDataMars,
-  y = trainDataMars$band_type,
-  sizes = subsets,
-  rfeControl = ctrl
-)
+<!-- lmProfile <- rfe( -->
+<!--   x = trainData, -->
+<!--   y = trainData$band_type, -->
+<!--   sizes = subsets, -->
+<!--   rfeControl = ctrl -->
+<!-- ) -->
 
-lmProfile
-
-
-# Set the seed for reproducibility
-set.seed(100)
-
-# Train the model using randomForest and predict on the training data itself.
-model_mars = train(band_type ~ ., data = trainDataMars, method = 'earth')
-fitted <- predict(model_mars)
-varimp_mars <- varImp(model_mars)
-plot(varimp_mars, main = "Variable Importance with MARS")
+<!-- lmProfile -->
 
 
-model_mars
+<!-- # Set the seed for reproducibility -->
+<!-- set.seed(100) -->
 
-predicted <- predict(model_mars, testDataMars)
-predicted
+<!-- # Train the model using randomForest and predict on the training data itself. -->
+<!-- model_mars = train(band_type ~ ., data = trainData, method = 'earth') -->
+<!-- fitted <- predict(model_mars) -->
+<!-- varimp_mars <- varImp(model_mars) -->
+<!-- plot(varimp_mars, main = "Variable Importance with MARS") -->
 
-confusionMatrix(
-  reference = testDataMars$band_type,
-  data = predicted,
-  mode = 'everything',
-  positive = 'NOBAND'
-)
-```
+
+<!-- model_mars -->
+
+<!-- predicted <- predict(model_mars, testData) -->
+<!-- predicted -->
+
+<!-- confusionMatrix( -->
+<!--   reference = testData$band_type, -->
+<!--   data = predicted, -->
+<!--   mode = 'everything', -->
+<!--   positive = 'NOBAND' -->
+<!-- ) -->
+<!-- ``` -->
+
+## Random Forest
+
+- explain how it works
+- fit the model
+- results
 
 ```{r}
 # random forest
@@ -440,6 +519,19 @@ confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
 ```
 
 
+## Nearest Neighbour Classification 
+
+we still have to fit this model
+
+- explain how it works
+- fit the model
+- results
+
+## Logistic Regression
+
+- explain how it works
+- fit the model
+- results
 
 
 ```{r}
@@ -468,6 +560,13 @@ print(mat)
 # the results are very poor, so we will focus on other model, because this one would be difficult to improve
 
 ```
+
+## Support Vector Machine 1
+
+- explain how it works
+- fit the model
+- results
+
 
 ```{r}
 # SVM1
@@ -500,6 +599,12 @@ print(confusionMatrix(
 
 
 ```
+
+## Support Vector Machine 2
+
+- explain how it works
+- fit the model
+- results
 
 ```{r}
 #SVM2
@@ -553,6 +658,12 @@ print(confusionMatrix(
 ```
 
 
+## Neural Network
+
+- explain how it works
+- fit the model
+- results
+
 ```{r neural network model}
 
 # numFolds <-
@@ -601,11 +712,17 @@ conf1
 
 ```
 
+## Classification Tree
+
+- explain how it works
+- fit the model
+- pruning...
+- results
+
 ```{r}
-# cylinder_no with only the first letter --> no significant results
-#bands$cylinder_no <- substr(bands$cylinder_no, 0, 1)
 
 library(rpart)
+library(rpart.plot)
 # Build the model
 set.seed(123)
 model_cart <- rpart(band_type ~., data = bands, method = "class")  
@@ -636,6 +753,12 @@ cart_prune <- prune(model_cart, cp = 0.01)
 
 
 ```
+
+## Linear Discriminant Analysis
+
+- explain how it works
+- fit the model
+- results
 
 ```{r}
 
@@ -668,9 +791,6 @@ plot(model_lda)
 # ggplot(lda.data, aes(LD1, LD2)) +
 #   geom_point(aes(color = band_type))
 ```
-
-
-
 
 
 
