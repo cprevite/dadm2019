@@ -419,6 +419,9 @@ trainData <- bands[trainRowNumbers,]
 
 # Step 3: Create the test dataset
 testData <- bands[-trainRowNumbers,]
+
+# the proportion of the classes (BAND and NOBAND) stay the same in the train and test set (65 and 35% respectively)
+
 ```
 
 
