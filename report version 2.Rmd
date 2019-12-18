@@ -528,7 +528,7 @@ confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
 ```{r}
 # check RF with bandsSmall --> in my opinion the results are poor (76% accuracy vs 82%)
 
-bandsSmall <- bands[c(1,2,4,6,7,9,12,16,18,23,24,26)] # only the elbow from Boruta and important variable from RF
+bandsSmall <- bands[c(1,2,4,6,7,9,12,16,18,23,24,26, 27)] # only the elbow from Boruta and important variable from RF
 # Create the training and test datasets
 set.seed(100)
 
@@ -536,10 +536,10 @@ set.seed(100)
 trainRowNumbersSmall <- createDataPartition(bandsSmall$band_type, p=0.75, list=FALSE)
 
 # Step 2: Create the training  dataset
-trainDataSmall <- bandsSmall[trainRowNumbers,]
+trainDataSmall <- bandsSmall[trainRowNumbersSmall,]
 
 # Step 3: Create the test dataset
-testDataSmall <- bandsSmall[-trainRowNumbers,]
+testDataSmall <- bandsSmall[-trainRowNumbersSmall,]
 
 # Call the function:
 
@@ -823,7 +823,7 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 # linear discriminant analysis
 
-trainDataLda <- trainData[, -18]
+trainDataLda <- trainData[, -c(18)]
 testDataLda <- testData[, -18]
 
 # Estimate preprocessing parameters
