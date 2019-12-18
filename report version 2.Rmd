@@ -33,6 +33,7 @@ library(randomForest)
 library(funModeling)
 library(gmodels)
 library(data.table)
+library(DMwR)
 
 ```
 
@@ -171,7 +172,7 @@ row.plot <- bands %>%
 row.plot
 ```
 
-We get some interesting informations from Figure 5; the repartition of missing values seems to be concentrated in the very last observations. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, they decided to not record these specific variables anymore. 13 variables are missing from the 486th observation, which means that we lost a lot of informations. We have to wonder if it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows but would also reduce drastically the number of missing values that we don't have to replace by an imputation method (knn, mean, median...). Keeping them and replacing the missing values for the 13 variables by an imputation method would make any sense as more than 30 % of the variables in the observations are created from assumptions (13 out 40). Based on this point, we decide to delete the last 54 consecutive observations of the dataset, which will give us a dataset with only 485 observations. 
+We get some interesting informations from Figure 5; the repartition of missing values seems to be concentrated in the very last observations. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, they decided to not record these specific variables anymore. 13 variables are missing from the 486th observation, which means that we lost a lot of informations. We have to wonder if it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows but would also reduce drastically the number of missing values that we don't have to replace by an imputation method (knn, mean, median...). Keeping them and replacing the missing values for the 13 variables by an imputation method would not make any sense as more than 30 % of the variables in the observations are created from assumptions (13 out 40). Based on this point, we decide to delete the last 54 consecutive observations of the dataset, which will give us a dataset with 485 observations. 
 
 ```{r delete last obs, message=FALSE, warning=FALSE}
 #Delete the last rows that have consecutive missing data
@@ -196,11 +197,7 @@ bands %>%
     position = "center") 
 ```
 
-- except for location
-consecutive missing -> we take them but set as undefined
-- na for other variables is acceptable 
-- we will use knn for imputation
-
+We observe that the variable **location** is the only one to still have an important ratio of missing values (more than 20%). Replacing all these values with an imputation method don't seem to be the best option in our opinion. We take the decision to set these NAs as **UNDEFINED** to ....
 
 
 ```{r location}
@@ -217,12 +214,18 @@ bands$location = as.factor(bands$location)
 - describe knn
 - why it is better than mean
 
+
+The amount of missing values for the rest of the variables is perceived as acceptable and these variables will be imputed by a **k-Nearest-Neighbors** (kNN) method. KNN is an algorithm that is useful for matching a point with its closest k neighbors in a multi-dimensional space. It can be used for data that are continuous, discrete, ordinal and categorical which makes it particularly useful for dealing with all kind of missing data. We have to set a value for **k** and decide to go for the simple approach to set k = sqrt(n) = 22. 
+
 ```{r}
 # replace missing values with knn 
-# we have to decide if we want to reèlace only factor or all variables with this method...
-library(DMwR)
 
-bands <- knnImputation(bands, k=10)
+
+n <- nrow(bands)
+n
+k <- sqrt(n)
+
+bands <- knnImputation(bands, k=22)
 
 # check missing value
 anyNA(bands)
@@ -236,6 +239,10 @@ anyNA(bands)
 - some are useless
 - cylinder_no special
 too many levels but we can keep the first letter as value (the same letter comes from same fabrication so maybe same problem)
+
+Once the database is complete and has no more missing values, we have now to look at these variables and decide what are the one we can delete for the analysis. In fact, there are a lot of attributes that are useless to define if the product presents defects or not. First of all, we can delete the variable with only 1 level of factor like **ink_color** and **cylinder_division**, as they won't have any effect on the response variable. on the other hand, the variable **job_number** seems to have too much levels (more than 200) and don't seem to affect the response variable. The variables **customer** and **date** can also be deleted as it have no possibiliies to affect the classe of the observations. Finally, the variable **cylinder_no** recquire a deeper analysis: if we look at the number of levels we should delete it, because it has almost the same number of levels (429) than observations (485) and it doesn't make sense to keep it to define the class. Therefore, the cylinder is the most important part of the printing processus, as when a problem of banding is detected in the processus, the cylinder has to be removed and repaired. So that means that it has a direct effect on the response variable. We really want to keep it for the analysis, so we decide to keep only the first letter of the value for each colomn, as we see that almost every values is in the form "LETTER NUMBER NUMBER NUMBER"; doing so the number of levels drop to 17, which is acceptable in term of analysis. We can assume that the letter represent the number of the batch or the location where it has been produced and it could have real effect on the response variable. 
+
+This first attempt to reduce the number of attribute gives us a database with 35 variables, which seems still high for a good analysis. We will see another method based on statistical features to try to select the most important attributes to keep for the analysis. 
 
 ```{r delete var}
 # Delete variables that are not needed
@@ -286,6 +293,8 @@ bands$cylinder_no <- as.factor(substr(bands$cylinder_no, 0, 1))
 - justify selected parameter 
 - decision to keep only the variable choosen by boruta
 - quick summary of new database after cutting the variables
+
+The Boruta algorithm is a wrapper built around the random forest classification algorithm. It tries to capture all the important, interesting features you might have in your dataset with respect to an outcome variable.
 
 ```{r}
 
