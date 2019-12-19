@@ -9,8 +9,13 @@ output:
       collapsed: true
       smooth_scroll: true
     fig_caption: yes
+    code_folding: hide 
 ---
 
+<style>
+body {
+text-align: justify}
+</style> 
 
 
 ```{r, message=FALSE, warning=FALSE}
@@ -81,7 +86,8 @@ library(DMwR)
 
 
 ## Loading data
-- 
+
+
 
 ```{r}
 bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
@@ -92,7 +98,7 @@ bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 
 The first task to analyze a dataset is to have a look at all the variables and their values. 
 
-```{r str, echo=FALSE, fig.cap= 'Figure 1'}
+```{r str, echo=FALSE, fig.cap= 'Figure 1', fig.align='center'}
 str(bands)
 ```
 
@@ -121,15 +127,17 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 Here is an overview of the dataset:
 
-```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable'}
-datatable(bands)
+```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable', fig.align='center'}
+kable(bands, 'html') %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+   scroll_box(width = "100%", height = "400px")
 ```
 
 ## Missing values
 
 We will focus now on the missing values, which makes this dataset so special. In fact we observe a lot of missing value and we have to decide what to do with them. 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 3'}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 3',fig.align='center'}
 # bands %>% 
 #   introduce() %>%
 #   t()%>%
@@ -142,7 +150,7 @@ plot_intro(bands)
 
 We see from Figure 3, that 4.6 % of the data are missing and the complete rows, i.e. an observation containing a value for all the variables, represent only 51 % of the total observations. From Figure 4, we observe that all the NAs of the bands dataset comes from 28 variables, with a special mention for the **location** variables which counts 156 missing values (almost 30 % percent of the observations are missing). Then, almost 10 variables counts quite the same number of missing value, so we will try to understand if there is a explanation behind this. It should be noted that for these attributes, the percentage of NAs is almost 10 %.  
 
-```{r percentage na, fig.cap= 'Figure 4: Prevalence of NAs'}
+```{r percentage na, fig.cap= 'Figure 4: Prevalence of NAs', fig.align='center'}
 
 x<-inspect_na(bands)
 show_plot(x, col_palette=2)
@@ -153,7 +161,7 @@ show_plot(x, col_palette=2)
 
 In order to analyze the structure of the missing values, we plot them in rows; that will allow to see if there is a link between the NAs. 
 
-```{r structure of NAs, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 5: Missing values in rows'}
+```{r structure of NAs, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 5: Missing values in rows', fig.align='center'}
 
 
 row.plot <- bands %>%
@@ -210,10 +218,6 @@ bands$location = as.factor(bands$location)
 
 
 ### Imputation of the missing values
-
-- describe knn
-- why it is better than mean
-
 
 The amount of missing values for the rest of the variables is perceived as acceptable and these variables will be imputed by a **k-Nearest-Neighbors** (kNN) method. KNN is an algorithm that is useful for matching a point with its closest k neighbors in a multi-dimensional space. It can be used for data that are continuous, discrete, ordinal and categorical which makes it particularly useful for dealing with all kind of missing data. We have to set a value for **k** and decide to go for the simple approach to set k = sqrt(n) = 22. 
 
@@ -288,15 +292,25 @@ bands$cylinder_no <- as.factor(substr(bands$cylinder_no, 0, 1))
 
 ### Boruta test - Second elimination
 
-- objective of boruta
+- objective of boruta 
 - explain how it works
 - justify selected parameter 
 - decision to keep only the variable choosen by boruta
 - quick summary of new database after cutting the variables
 
-The Boruta algorithm is a wrapper built around the random forest classification algorithm. It tries to capture all the important, interesting features you might have in your dataset with respect to an outcome variable.
+The Boruta algorithm is a wrapper built around the random forest classification algorithm. It tries to capture all the important and interesting features we might have in our dataset with respect to an outcome variable.
+We can explain how the algorithm works with help of this [website](https://www.r-bloggers.com/feature-selection-with-the-boruta-algorithm/).
 
-```{r}
+Let’s assume we have a target vector T (the response variable **band_type**) and a bunch of predictors P (all the other variables).
+
+The Boruta algorithm starts by duplicating every variable in P, but instead of making a row-for-row copy, it permutes the order of the values in each column. So, in the copied columns (let’s call them P’), there should be no relationship between the values and the target vector.
+
+Boruta then trains a Random Forest to predict T based on P and P’.
+
+The algorithm then compares the variable importance scores for each variable in P with it’s “shadow” in P’. If the distribution of variable importances is significantly greater in P than it is in P’, then the Boruta algorithm considers that variable significant. 
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
 
 
 boruta_test <- Boruta(band_type ~ ., data = bands, doTrace = 2)
@@ -346,6 +360,21 @@ bands <-
     names(bands) %in% names_variables_to_keep
   )]
 
+```
+
+```{r plot boruta, echo=FALSE, fig.align='center', fig.cap='Importance of variable with Boruta'}
+plot(boruta_test, xlab = "", xaxt = "n")
+```
+
+```{r confirmed variable, echo=FALSE, fig.align='center', fig.cap= 'Table of the final decision of Boruta'}
+kable(table_result) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
+    full_width = F,
+    position = "center"
+  ) %>%
+  footnote(symbol = strwrap("Results of the boruta test")) %>%
+  scroll_box(width = "500px", height = "300px")
 ```
 
 
@@ -821,30 +850,30 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 ```{r}
 
-# linear discriminant analysis
-
-trainDataLda <- trainData[, -c(18)]
-testDataLda <- testData[, -18]
-
-# Estimate preprocessing parameters
-preproc.param <- trainDataLda %>% 
-  preProcess(method = c("center", "scale"))
-# Transform the data using the estimated parameters
-train.transformed <- preproc.param %>% predict(trainDataLda)
-test.transformed <- preproc.param %>% predict(testDataLda)
-
-
-
-library(MASS)
-# Fit the model
-model_lda <- lda(band_type ~., data = train.transformed)
-# Make predictions
-predictions <- model_lda %>% predict(test.transformed)
-# Model accuracy
-mean(predictions$class==test.transformed$band_type)
-
-model_lda
-plot(model_lda)
+# # linear discriminant analysis
+# 
+# trainDataLda <- trainData[, -c(18)]
+# testDataLda <- testData[, -18]
+# 
+# # Estimate preprocessing parameters
+# preproc.param <- trainDataLda %>% 
+#   preProcess(method = c("center", "scale"))
+# # Transform the data using the estimated parameters
+# train.transformed <- preproc.param %>% predict(trainDataLda)
+# test.transformed <- preproc.param %>% predict(testDataLda)
+# 
+# 
+# 
+# library(MASS)
+# # Fit the model
+# model_lda <- lda(band_type ~., data = train.transformed)
+# # Make predictions
+# predictions <- model_lda %>% predict(test.transformed)
+# # Model accuracy
+# mean(predictions$class==test.transformed$band_type)
+# 
+# model_lda
+# plot(model_lda)
 
 # lda.data <- cbind(train.transformed, predict(model_lda)$x)
 # ggplot(lda.data, aes(LD1, LD2)) +
