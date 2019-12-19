@@ -146,42 +146,6 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 ```
 
-
-```{r}
-table(bands$band_type)
-
-# Dataset of only 1s
-bands.bands = bands[bands$band_type == "BAND",]
-
-# Dataset with only 0s
-bands.nobands = bands[bands$band_type == "NOBAND",]
-
-# Preparing random samples for training and test set allocation
-bands.nobands.sample <- bands.nobands[sample(x=1:nrow(bands.nobands),size = nrow(bands.bands)),]
-
-# Combine the above 2 datasets
-bands.sample <- rbind(bands.bands, bands.nobands.sample)
-
-bands.sample <- knnImputation(bands.sample, k = 22)
-anyNA(bands.sample)
-
-bands.sample <-
-  bands.sample[, which(
-    !names(bands.sample) %in% c(
-      "date", # useless
-      "ink_color", # only 1 level
-      "customer", # don't depend on the printing processus
-      'cylinder_division', # only 1 level
-      'job_number' # too many levels
-    )
-  )]
-
-bands.sample$cylinder_no <- as.factor(substr(bands.sample$cylinder_no, 0, 1))
-```
-
-
-
-
 Here below is an overview of the dataset.
 
 
@@ -332,22 +296,22 @@ bands1$cylinder_no <- as.factor(substr(bands1$cylinder_no, 0, 1))
 ### Boruta test - Second elimination
 
 
-The Boruta algorithm is a wrapper built around the random forest classification algorithm. It tries to capture all the important and interesting features we might have in our dataset with respect to an outcome variable.
+The Boruta algorithm is useful to define the importance of a variable in a dataset with respect to a response variable. It is built around a Random Forest classification algorithm. 
 We can explain how the algorithm works with help of this [website](https://www.r-bloggers.com/feature-selection-with-the-boruta-algorithm/).
 
-Let’s assume we have a target vector T (the response variable **band_type**) and a bunch of predictors P (all the other variables).
+"Let’s assume we have a target vector T (the response variable **band_type**) and a bunch of predictors P (all the other variables).
 
 The Boruta algorithm starts by duplicating every variable in P, but instead of making a row-for-row copy, it permutes the order of the values in each column. So, in the copied columns (let’s call them P’), there should be no relationship between the values and the target vector.
 
 Boruta then trains a Random Forest to predict T based on P and P’.
 
-The algorithm then compares the variable importance scores for each variable in P with it’s “shadow” in P’. If the distribution of variable importances is significantly greater in P than it is in P’, then the Boruta algorithm considers that variable significant. 
+The algorithm then compares the variable importance scores for each variable in P with it’s “shadow” in P’. If the distribution of variable importances is significantly greater in P than it is in P’, then the Boruta algorithm considers that variable significant."
 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
 
-boruta_test <- Boruta(band_type ~ ., data = bands.sample, doTrace = 2)
+boruta_test <- Boruta(band_type ~ ., data = bands1, doTrace = 2)
 table_result <- as.data.frame(boruta_test$finalDecision)
 setDT(table_result, keep.rownames = TRUE)[]
 colnames(table_result) <- c("Variable", "Decision")
@@ -375,9 +339,9 @@ names_variables_to_keep <- variables_to_keep$Variable
 
 names_variables_to_keep
 
-bands.sample <-
-  bands.sample[, which(
-    names(bands.sample) %in% names_variables_to_keep
+bands1 <-
+  bands1[, which(
+    names(bands1) %in% names_variables_to_keep
   )]
 
 ```
@@ -401,7 +365,7 @@ axis(
 
 The results of the Boruta algorithm are shown in this plot, with the importance of each variables and the final decision to keep it or not. The first thing we observe is that there are a lot of important variables but some are more than others, specially the right hand side of the elbow. Then we notice that the in the 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. Running the Boruta algorithm on the database with the 485 observations makes sense, as the objectif is to spot which variables are the most important and it is better to do it on a database which reflects the most the reality, limiting the missing values. 
 
-The decision is to keep the 11 most important variables according to Boruta, excluding the variables having consecutive missing values in the last observations, which is **grain_screened**.
+The decision is to keep the 11 most important variables according to Boruta, excluding the variables having consecutive missing values in the last observations, which is **grain_screened**. At this point, It seems acceptable to do the analysis with the 540 observations of the database, as the ones selected are not impacted by these consecutive missing values. So the database under analysis is the one with 540 observations and the 10 most important variables: **press_type, press, press_speed, ink_type, viscosity, cylinder_no, hardener, cylinder_size, roller_durometer, cylinder_type, band_type** and the output variable **band_type**.
 
 
 ```{r}
@@ -427,53 +391,30 @@ bands2$cylinder_no <- as.factor(substr(bands2$cylinder_no, 0, 1))
 bands2 <-  knnImputation(bands2, k=22)
 
 
-bands3 <- bands1[, which(
-    names(bands1) %in% c(
-      "press_type", 
-      "press", 
-      "press_speed", 
-      'ink_type', 
-      'viscosity',
-      'cylinder_no',
-      'hardener',
-      'cylinder_size',
-      'roller_durometer',
-      'cylinder_type',
-      'band_type'
-    )
-  )]
-
-bands3$cylinder_no <- as.factor(substr(bands3$cylinder_no, 0, 1))
-
-
-
-# Dataset of only 1s
-bands2.bands = bands2[bands2$band_type == "BAND",]
-
-# Dataset with only 0s
-bands2.nobands = bands2[bands$band_type == "NOBAND",]
-
-# Preparing random samples for training and test set allocation
-bands2.nobands.sample <- bands2.nobands[sample(x=1:nrow(bands2.nobands),size = nrow(bands2.bands)),]
-
-# Combine the above 2 datasets
-bands2.sample <- rbind(bands2.bands, bands2.nobands.sample)
-
-
 ```
 
 
-<!-- ```{r confirmed variable, echo=FALSE, fig.align='center', fig.cap= 'Table of the final decision of Boruta'} -->
-<!-- kable(table_result) %>% -->
-<!--   kable_styling( -->
-<!--     bootstrap_options = c("striped", "hover", "condensed", "bordered"), -->
-<!--     full_width = F, -->
-<!--     position = "center" -->
-<!--   ) %>% -->
-<!--   footnote(symbol = strwrap("Results of the boruta test")) %>% -->
-<!--   scroll_box(width = "500px", height = "300px") -->
-<!-- ``` -->
+In order to prevent a bad value in specificity in the further models, it has been decided that the number of each response variable need to be the same. This way, more weight is given to negative classe **BAND**.
 
+```{r}
+
+table(bands2$band_type)
+
+# Dataset of only 1s
+bands.bands = bands2[bands2$band_type == "BAND",]
+
+# Dataset with only 0s
+bands.nobands = bands2[bands2$band_type == "NOBAND",]
+
+# Preparing random samples for training and test set allocation
+bands.nobands.sample <- bands.nobands[sample(x=1:nrow(bands.nobands),size = nrow(bands.bands)),]
+
+# Combine the above 2 datasets
+bands.sample <- rbind(bands.bands, bands.nobands.sample)
+
+table(bands.sample$band_type)
+
+```
 
 ## Outliers
 
@@ -499,27 +440,18 @@ for (i in numeric_column) {
 
 ```{r fig.height= 12}
 
+plot_histogram(bands1)
 
-plot_histogram(bands)
+plot_density(bands1)
 
-plot_density(bands)
-
-
-
-plot_boxplot(bands, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
-
-# split data in 2
-bands.band <- filter(bands, bands$band_type == 'BAND')
-
-bands.noband <- filter(bands, bands$band_type == 'NOBAND')
-
+plot_boxplot(bands1, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
 ```
 
 ```{r, fig.width = 10, fig.height = 20}
 
 
-bands%>%
+bands1%>%
   explore_all(target = band_type)
 ```
 
@@ -546,67 +478,19 @@ bands%>%
 set.seed(100)
 
 # Step 1: Get row numbers for the training data
-trainRowNumbers <- createDataPartition(bands.sample$band_type, p=0.75, list=FALSE)
+trainRowNumbers <- createDataPartition(bands1$band_type, p=0.75, list=FALSE)
 
 # Step 2: Create the training  dataset
-trainData <- bands.sample[trainRowNumbers,]
+trainData <- bands1[trainRowNumbers,]
 
 # Step 3: Create the test dataset
-testData <- bands.sample[-trainRowNumbers,]
+testData <- bands1[-trainRowNumbers,]
 
 # the proportion of the classes (BAND and NOBAND) stay the same in the train and test set (65 and 35% respectively)
 
+table(trainData$band_type)
+table(testData$band_type)
 ```
-
-
-
-<!-- ```{r} -->
-<!-- # MARS Multivariate Adaptive Regression Splines -->
-<!-- # recursive feature elimination (RFE) -->
-<!-- set.seed(100) -->
-<!-- options(warn = -1) -->
-
-<!-- subsets <- c(1:6, 10, 15, 35) -->
-
-<!-- ctrl <- rfeControl( -->
-<!--   functions = rfFuncs, -->
-<!--   method = "repeatedcv", -->
-<!--   repeats = 5, -->
-<!--   verbose = FALSE -->
-<!-- ) -->
-
-<!-- lmProfile <- rfe( -->
-<!--   x = trainData, -->
-<!--   y = trainData$band_type, -->
-<!--   sizes = subsets, -->
-<!--   rfeControl = ctrl -->
-<!-- ) -->
-
-<!-- lmProfile -->
-
-
-<!-- # Set the seed for reproducibility -->
-<!-- set.seed(100) -->
-
-<!-- # Train the model using randomForest and predict on the training data itself. -->
-<!-- model_mars = train(band_type ~ ., data = trainData, method = 'earth') -->
-<!-- fitted <- predict(model_mars) -->
-<!-- varimp_mars <- varImp(model_mars) -->
-<!-- plot(varimp_mars, main = "Variable Importance with MARS") -->
-
-
-<!-- model_mars -->
-
-<!-- predicted <- predict(model_mars, testData) -->
-<!-- predicted -->
-
-<!-- confusionMatrix( -->
-<!--   reference = testData$band_type, -->
-<!--   data = predicted, -->
-<!--   mode = 'everything', -->
-<!--   positive = 'NOBAND' -->
-<!-- ) -->
-<!-- ``` -->
 
 ## Random Forest
 
@@ -620,7 +504,7 @@ testData <- bands.sample[-trainRowNumbers,]
 
 # Call the function:
 
-integ_mod_1 <- data_integrity_model(data = bands, model_name = "randomForest")
+integ_mod_1 <- data_integrity_model(data = bands.sample, model_name = "randomForest")
 integ_mod_1$data_ok
 
 
