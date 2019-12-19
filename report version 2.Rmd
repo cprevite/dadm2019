@@ -228,6 +228,7 @@ The amount of missing values for the rest of the variables is perceived as accep
 n <- nrow(bands1)
 n
 k <- sqrt(n)
+k
 
 bands1 <- knnImputation(bands1, k=22)
 
@@ -321,20 +322,6 @@ kable(table_result) %>%
   ) %>%
   footnote(symbol = strwrap("Results of the boruta test")) %>%
   scroll_box(width = "500px", height = "300px")
-
-
-plot(boruta_test, xlab = "", xaxt = "n")
-lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
-  boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
-names(lz) <- colnames(boruta_test$ImpHistory)
-Labels <- sort(sapply(lz, median))
-axis(
-  side = 1,
-  las = 2,
-  labels = names(Labels),
-  at = 1:ncol(boruta_test$ImpHistory),
-  cex.axis = 0.8
-)
 
 
 variables_to_keep <- table_result %>%
@@ -493,13 +480,13 @@ bands%>%
 set.seed(100)
 
 # Step 1: Get row numbers for the training data
-trainRowNumbers <- createDataPartition(bands1$band_type, p=0.75, list=FALSE)
+trainRowNumbers <- createDataPartition(bands2$band_type, p=0.75, list=FALSE)
 
 # Step 2: Create the training  dataset
-trainData <- bands1[trainRowNumbers,]
+trainData <- bands2[trainRowNumbers,]
 
 # Step 3: Create the test dataset
-testData <- bands1[-trainRowNumbers,]
+testData <- bands2[-trainRowNumbers,]
 
 # the proportion of the classes (BAND and NOBAND) stay the same in the train and test set (65 and 35% respectively)
 
