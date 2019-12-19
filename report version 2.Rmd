@@ -18,7 +18,7 @@ text-align: justify}
 </style> 
 
 
-<br/><br>
+
 Here is the list of libraries that have been used throughout the project.
 ```{r, message=FALSE, warning=FALSE}
 library(here)
@@ -144,15 +144,27 @@ bands <- as.data.frame(lapply(bands,function(x)
   else(x)))
 
 
+
 ```
 
 Here below is an overview of the dataset.
 
 
 ```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable', fig.align='center'}
+
+bands %>% 
+  introduce() %>%
+  t()%>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
+  footnote(symbol = strwrap("Sort description of the data"))
+
 kable(bands, 'html') %>%
   kable_styling(bootstrap_options = c("striped", "hover")) %>%
    scroll_box(width = "100%", height = "400px")
+
+
+
 ```
 
 ## Missing values
@@ -259,9 +271,16 @@ k
 
 bands1 <- knnImputation(bands1, k=22)
 
-# check missing value
-anyNA(bands)
+
 ```
+
+A last check if there are still missing values is performed here below by using the 'anyNA' command, to assure that all the observations have a value.
+```{r, include = FALSE}
+# check missing value
+anyNA(bands1)
+```
+
+
 
 ## Selection of the variables
 
@@ -316,19 +335,13 @@ table_result <- as.data.frame(boruta_test$finalDecision)
 setDT(table_result, keep.rownames = TRUE)[]
 colnames(table_result) <- c("Variable", "Decision")
 
-kable(table_result) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
-    full_width = F,
-    position = "center"
-  ) %>%
-  footnote(symbol = strwrap("Results of the boruta test")) %>%
-  scroll_box(width = "500px", height = "300px")
+
 
 
 variables_to_keep <- table_result %>%
   filter(table_result$Decision == 'Confirmed' |
            table_result$Decision == 'Tentative')
+
 
 band_typeVar <- data.frame('band_type', 'Confirmed')
 names(band_typeVar) <- c('Variable', 'Decision')
@@ -346,9 +359,19 @@ bands1 <-
 
 ```
 
+```{r kable boruta, echo=FALSE, fig.align='center', fig.cap= 'Figure 5: Importance of the variables'}
+kable(table_result) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
+    full_width = F,
+    position = "center"
+  ) %>%
+  footnote(symbol = strwrap("Results of the boruta test")) %>%
+  scroll_box(width = "500px", height = "300px")
+```
 
 
-```{r plot boruta, echo=FALSE, fig.align='center', fig.cap='Importance of variable with Boruta'}
+```{r plot boruta, echo=FALSE, fig.align='center', fig.cap= 'Figure 6: Importance of the variables', fig.height=c(5), fig.width=c(10)}
 plot(boruta_test, xlab = "", xaxt = "n")
 lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
   boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
@@ -359,11 +382,11 @@ axis(
   las = 2,
   labels = names(Labels),
   at = 1:ncol(boruta_test$ImpHistory),
-  cex.axis = 0.8
+  cex.axis = 0.7
 )
 ```
-
-The results of the Boruta algorithm are shown in this plot, with the importance of each variables and the final decision to keep it or not. The first thing we observe is that there are a lot of important variables but some are more than others, specially the right hand side of the elbow. Then we notice that the in the 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. Running the Boruta algorithm on the database with the 485 observations makes sense, as the objectif is to spot which variables are the most important and it is better to do it on a database which reflects the most the reality, limiting the missing values. 
+§
+The results of the Boruta algorithm are shown in Figure 5 and 6, with the importance of each variables and the final decision of either to keep the variable or not. The first thing that can be observed is that there are a lot of important variables but a certain number of them show a higher importance than others, especially the right hand side of the elbow. Moreover, within the top 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. Running the Boruta algorithm on the database with the 485 observations makes sense, as the objectif is to spot which variables are the most important and it is better to do it on a database which reflects the most the reality, limiting the missing values. 
 
 The decision is to keep the 11 most important variables according to Boruta, excluding the variables having consecutive missing values in the last observations, which is **grain_screened**. At this point, It seems acceptable to do the analysis with the 540 observations of the database, as the ones selected are not impacted by these consecutive missing values. So the database under analysis is the one with 540 observations and the 10 most important variables: **press_type, press, press_speed, ink_type, viscosity, cylinder_no, hardener, cylinder_size, roller_durometer, cylinder_type, band_type** and the output variable **band_type**.
 
@@ -440,18 +463,18 @@ for (i in numeric_column) {
 
 ```{r fig.height= 12}
 
-plot_histogram(bands1)
+plot_histogram(bands.sample)
 
-plot_density(bands1)
+plot_density(bands.sample)
 
-plot_boxplot(bands1, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
+plot_boxplot(bands.sample, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
 ```
 
 ```{r, fig.width = 10, fig.height = 20}
 
 
-bands1%>%
+bands.sample%>%
   explore_all(target = band_type)
 ```
 
