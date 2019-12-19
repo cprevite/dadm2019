@@ -63,7 +63,7 @@ library(DMwR)
 - recommendations and implementations
 
 
-# General
+# Introduction
 
 - purpose of the course
 - the benefit of Machine Learning in general
@@ -184,7 +184,7 @@ We get some interesting informations from Figure 5; the repartition of missing v
 
 ```{r delete last obs, message=FALSE, warning=FALSE}
 #Delete the last rows that have consecutive missing data
-bands <- bands[-c(486:540),]
+bands1 <- bands[-c(486:540),]
 ```
 
 
@@ -192,10 +192,10 @@ At this point, we can check again the prevalence of missing values:
 
 ```{r percentage na 2, fig.cap= 'Figure 4: Prevalence of NAs'}
 
-x1<-inspect_na(bands)
+x1<-inspect_na(bands1)
 show_plot(x1, col_palette=2)
 
-bands %>%
+bands1 %>%
   introduce() %>%
   t() %>%
   kable() %>%
@@ -210,9 +210,9 @@ We observe that the variable **location** is the only one to still have an impor
 
 ```{r location}
 # replace missing values of "location variable" with value "Undefined"
-bands$location = as.character(bands$location)
-bands$location[is.na(bands$location)] <- "UNDEFINED"
-bands$location = as.factor(bands$location)
+bands1$location = as.character(bands1$location)
+bands1$location[is.na(bands1$location)] <- "UNDEFINED"
+bands1$location = as.factor(bands1$location)
 
 ```
 
@@ -225,11 +225,11 @@ The amount of missing values for the rest of the variables is perceived as accep
 # replace missing values with knn 
 
 
-n <- nrow(bands)
+n <- nrow(bands1)
 n
 k <- sqrt(n)
 
-bands <- knnImputation(bands, k=22)
+bands1 <- knnImputation(bands1, k=22)
 
 # check missing value
 anyNA(bands)
@@ -250,9 +250,9 @@ This first attempt to reduce the number of attribute gives us a database with 35
 
 ```{r delete var}
 # Delete variables that are not needed
-bands <-
-  bands[, which(
-    !names(bands) %in% c(
+bands1 <-
+  bands1[, which(
+    !names(bands1) %in% c(
       "date", # useless
       "ink_color", # only 1 level
       "customer", # don't depend on the printing processus
@@ -261,7 +261,7 @@ bands <-
     )
   )]
 
-bands$cylinder_no <- as.factor(substr(bands$cylinder_no, 0, 1))
+bands1$cylinder_no <- as.factor(substr(bands1$cylinder_no, 0, 1))
 ```
 
 
@@ -292,11 +292,6 @@ bands$cylinder_no <- as.factor(substr(bands$cylinder_no, 0, 1))
 
 ### Boruta test - Second elimination
 
-- objective of boruta 
-- explain how it works
-- justify selected parameter 
-- decision to keep only the variable choosen by boruta
-- quick summary of new database after cutting the variables
 
 The Boruta algorithm is a wrapper built around the random forest classification algorithm. It tries to capture all the important and interesting features we might have in our dataset with respect to an outcome variable.
 We can explain how the algorithm works with help of this [website](https://www.r-bloggers.com/feature-selection-with-the-boruta-algorithm/).
@@ -313,7 +308,7 @@ The algorithm then compares the variable importance scores for each variable in 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
 
-boruta_test <- Boruta(band_type ~ ., data = bands, doTrace = 2)
+boruta_test <- Boruta(band_type ~ ., data = bands1, doTrace = 2)
 table_result <- as.data.frame(boruta_test$finalDecision)
 setDT(table_result, keep.rownames = TRUE)[]
 colnames(table_result) <- c("Variable", "Decision")
@@ -355,16 +350,62 @@ names_variables_to_keep <- variables_to_keep$Variable
 
 names_variables_to_keep
 
-bands <-
-  bands[, which(
-    names(bands) %in% names_variables_to_keep
+bands1 <-
+  bands1[, which(
+    names(bands1) %in% names_variables_to_keep
   )]
 
 ```
 
+
+
 ```{r plot boruta, echo=FALSE, fig.align='center', fig.cap='Importance of variable with Boruta'}
 plot(boruta_test, xlab = "", xaxt = "n")
+lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
+  boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
+names(lz) <- colnames(boruta_test$ImpHistory)
+Labels <- sort(sapply(lz, median))
+axis(
+  side = 1,
+  las = 2,
+  labels = names(Labels),
+  at = 1:ncol(boruta_test$ImpHistory),
+  cex.axis = 0.8
+)
 ```
+
+The results of the Boruta algorithm are shown in this plot, with the importance of each variables and the final decision to keep it or not. The first thing we observe is that there are a lot of important variables but some are more than others, specially the right hand side of the elbow. Then we notice that the in the 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. So, we decide to take in consideration an other database and test both in parallel. 
+
+
+1) the 485 first observations with all the variables selected by Boruta
+
+2) the 540 observations with the 11 most important variables selected by Boruta (excluding **grain_screened**)
+
+```{r}
+bands2 <- knnImputation(bands, k=22)
+
+bands2 <-
+  bands2[, which(
+    names(bands2) %in% c(
+      "press_type", # useless
+      "press", # only 1 level
+      "press_speed", # don't depend on the printing processus
+      'ink_type', # only 1 level
+      'viscosity',
+      'cylinder_no',
+      'hardener',
+      'cylinder_size',
+      'humidity',
+      'roller_durometer',
+      'cylinder_type',
+      'ink_pct',
+      'band_type'
+    )
+  )]
+
+bands2$cylinder_no <- as.factor(substr(bands2$cylinder_no, 0, 1))
+```
+
 
 ```{r confirmed variable, echo=FALSE, fig.align='center', fig.cap= 'Table of the final decision of Boruta'}
 kable(table_result) %>%
@@ -377,10 +418,11 @@ kable(table_result) %>%
   scroll_box(width = "500px", height = "300px")
 ```
 
+This table presents more clearly the variables we will keep.
 
 ## Outliers
 
-We have generated the boxplot and the summary for all the variables and examinated the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error meassurements and neither error entries in the data
+We have generated the boxplot and the summary for all the variables and examinated the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error meassurements and neither error entries in the data.
 
 ```{r, message=FALSE, warning=FALSE, include= FALSE}
 
@@ -446,17 +488,18 @@ bands%>%
 ## test and train sets
 ```{r}
 
+
 # Create the training and test datasets
 set.seed(100)
 
 # Step 1: Get row numbers for the training data
-trainRowNumbers <- createDataPartition(bands$band_type, p=0.75, list=FALSE)
+trainRowNumbers <- createDataPartition(bands1$band_type, p=0.75, list=FALSE)
 
 # Step 2: Create the training  dataset
-trainData <- bands[trainRowNumbers,]
+trainData <- bands1[trainRowNumbers,]
 
 # Step 3: Create the test dataset
-testData <- bands[-trainRowNumbers,]
+testData <- bands1[-trainRowNumbers,]
 
 # the proportion of the classes (BAND and NOBAND) stay the same in the train and test set (65 and 35% respectively)
 
@@ -524,7 +567,7 @@ testData <- bands[-trainRowNumbers,]
 
 # Call the function:
 
-integ_mod_1 <- data_integrity_model(data = bands, model_name = "randomForest")
+integ_mod_1 <- data_integrity_model(data = bands1, model_name = "randomForest")
 integ_mod_1$data_ok
 
 
@@ -557,7 +600,7 @@ confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
 ```{r}
 # check RF with bandsSmall --> in my opinion the results are poor (76% accuracy vs 82%)
 
-bandsSmall <- bands[c(1,2,4,6,7,9,12,16,18,23,24,26, 27)] # only the elbow from Boruta and important variable from RF
+bandsSmall <- bands1[c(1,2,4,6,7,9,12,16,18,23,24,26, 27)] # only the elbow from Boruta and important variable from RF
 # Create the training and test datasets
 set.seed(100)
 
