@@ -144,7 +144,44 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 ```
 
+
+```{r}
+table(bands$band_type)
+
+# Dataset of only 1s
+bands.bands = bands[bands$band_type == "BAND",]
+
+# Dataset with only 0s
+bands.nobands = bands[bands$band_type == "NOBAND",]
+
+# Preparing random samples for training and test set allocation
+bands.nobands.sample <- bands.nobands[sample(x=1:nrow(bands.nobands),size = nrow(bands.bands)),]
+
+# Combine the above 2 datasets
+bands.sample <- rbind(bands.bands, bands.nobands.sample)
+
+bands.sample <- knnImputation(bands.sample, k = 22)
+anyNA(bands.sample)
+
+bands.sample <-
+  bands.sample[, which(
+    !names(bands.sample) %in% c(
+      "date", # useless
+      "ink_color", # only 1 level
+      "customer", # don't depend on the printing processus
+      'cylinder_division', # only 1 level
+      'job_number' # too many levels
+    )
+  )]
+
+bands.sample$cylinder_no <- as.factor(substr(bands.sample$cylinder_no, 0, 1))
+```
+
+
+
+
 Here below is an overview of the dataset.
+
 
 ```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable', fig.align='center'}
 kable(bands, 'html') %>%
@@ -308,7 +345,7 @@ The algorithm then compares the variable importance scores for each variable in 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
 
-boruta_test <- Boruta(band_type ~ ., data = bands1, doTrace = 2)
+boruta_test <- Boruta(band_type ~ ., data = bands.sample, doTrace = 2)
 table_result <- as.data.frame(boruta_test$finalDecision)
 setDT(table_result, keep.rownames = TRUE)[]
 colnames(table_result) <- c("Variable", "Decision")
@@ -336,9 +373,9 @@ names_variables_to_keep <- variables_to_keep$Variable
 
 names_variables_to_keep
 
-bands1 <-
-  bands1[, which(
-    names(bands1) %in% names_variables_to_keep
+bands.sample <-
+  bands.sample[, which(
+    names(bands.sample) %in% names_variables_to_keep
   )]
 
 ```
@@ -360,51 +397,81 @@ axis(
 )
 ```
 
-The results of the Boruta algorithm are shown in this plot, with the importance of each variables and the final decision to keep it or not. The first thing we observe is that there are a lot of important variables but some are more than others, specially the right hand side of the elbow. Then we notice that the in the 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. So, we decide to take in consideration an other database and test both in parallel. 
+The results of the Boruta algorithm are shown in this plot, with the importance of each variables and the final decision to keep it or not. The first thing we observe is that there are a lot of important variables but some are more than others, specially the right hand side of the elbow. Then we notice that the in the 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. Running the Boruta algorithm on the database with the 485 observations makes sense, as the objectif is to spot which variables are the most important and it is better to do it on a database which reflects the most the reality, limiting the missing values. 
 
+The decision is to keep the 11 most important variables according to Boruta, excluding the variables having consecutive missing values in the last observations, which is **grain_screened**.
 
-1) the 485 first observations with all the variables selected by Boruta
-
-2) the 540 observations with the 11 most important variables selected by Boruta (excluding **grain_screened**)
 
 ```{r}
-bands2 <- knnImputation(bands, k=22)
 
-bands2 <-
-  bands2[, which(
-    names(bands2) %in% c(
-      "press_type", # useless
-      "press", # only 1 level
-      "press_speed", # don't depend on the printing processus
-      'ink_type', # only 1 level
+bands2 <- bands[, which(
+    names(bands) %in% c(
+      "press_type", 
+      "press", 
+      "press_speed", 
+      'ink_type', 
       'viscosity',
       'cylinder_no',
       'hardener',
       'cylinder_size',
-      'humidity',
       'roller_durometer',
       'cylinder_type',
-      'ink_pct',
       'band_type'
     )
   )]
 
 bands2$cylinder_no <- as.factor(substr(bands2$cylinder_no, 0, 1))
+
+bands2 <-  knnImputation(bands2, k=22)
+
+
+bands3 <- bands1[, which(
+    names(bands1) %in% c(
+      "press_type", 
+      "press", 
+      "press_speed", 
+      'ink_type', 
+      'viscosity',
+      'cylinder_no',
+      'hardener',
+      'cylinder_size',
+      'roller_durometer',
+      'cylinder_type',
+      'band_type'
+    )
+  )]
+
+bands3$cylinder_no <- as.factor(substr(bands3$cylinder_no, 0, 1))
+
+
+
+# Dataset of only 1s
+bands2.bands = bands2[bands2$band_type == "BAND",]
+
+# Dataset with only 0s
+bands2.nobands = bands2[bands$band_type == "NOBAND",]
+
+# Preparing random samples for training and test set allocation
+bands2.nobands.sample <- bands2.nobands[sample(x=1:nrow(bands2.nobands),size = nrow(bands2.bands)),]
+
+# Combine the above 2 datasets
+bands2.sample <- rbind(bands2.bands, bands2.nobands.sample)
+
+
 ```
 
 
-```{r confirmed variable, echo=FALSE, fig.align='center', fig.cap= 'Table of the final decision of Boruta'}
-kable(table_result) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
-    full_width = F,
-    position = "center"
-  ) %>%
-  footnote(symbol = strwrap("Results of the boruta test")) %>%
-  scroll_box(width = "500px", height = "300px")
-```
+<!-- ```{r confirmed variable, echo=FALSE, fig.align='center', fig.cap= 'Table of the final decision of Boruta'} -->
+<!-- kable(table_result) %>% -->
+<!--   kable_styling( -->
+<!--     bootstrap_options = c("striped", "hover", "condensed", "bordered"), -->
+<!--     full_width = F, -->
+<!--     position = "center" -->
+<!--   ) %>% -->
+<!--   footnote(symbol = strwrap("Results of the boruta test")) %>% -->
+<!--   scroll_box(width = "500px", height = "300px") -->
+<!-- ``` -->
 
-This table presents more clearly the variables we will keep.
 
 ## Outliers
 
@@ -453,6 +520,436 @@ bands.noband <- filter(bands, bands$band_type == 'NOBAND')
 bands%>%
   explore_all(target = band_type)
 ```
+
+
+
+
+
+# Fitting the models
+
+
+```{r}
+#normalize data
+# doesn't change the results so we will not keep the modifications
+# b.process <- preProcess(bands, method= 'range')
+# b <- predict(b.process, newdata = bands)
+```
+
+
+## test and train sets
+```{r}
+
+
+# Create the training and test datasets
+set.seed(100)
+
+# Step 1: Get row numbers for the training data
+trainRowNumbers <- createDataPartition(bands.sample$band_type, p=0.75, list=FALSE)
+
+# Step 2: Create the training  dataset
+trainData <- bands.sample[trainRowNumbers,]
+
+# Step 3: Create the test dataset
+testData <- bands.sample[-trainRowNumbers,]
+
+# the proportion of the classes (BAND and NOBAND) stay the same in the train and test set (65 and 35% respectively)
+
+```
+
+
+
+<!-- ```{r} -->
+<!-- # MARS Multivariate Adaptive Regression Splines -->
+<!-- # recursive feature elimination (RFE) -->
+<!-- set.seed(100) -->
+<!-- options(warn = -1) -->
+
+<!-- subsets <- c(1:6, 10, 15, 35) -->
+
+<!-- ctrl <- rfeControl( -->
+<!--   functions = rfFuncs, -->
+<!--   method = "repeatedcv", -->
+<!--   repeats = 5, -->
+<!--   verbose = FALSE -->
+<!-- ) -->
+
+<!-- lmProfile <- rfe( -->
+<!--   x = trainData, -->
+<!--   y = trainData$band_type, -->
+<!--   sizes = subsets, -->
+<!--   rfeControl = ctrl -->
+<!-- ) -->
+
+<!-- lmProfile -->
+
+
+<!-- # Set the seed for reproducibility -->
+<!-- set.seed(100) -->
+
+<!-- # Train the model using randomForest and predict on the training data itself. -->
+<!-- model_mars = train(band_type ~ ., data = trainData, method = 'earth') -->
+<!-- fitted <- predict(model_mars) -->
+<!-- varimp_mars <- varImp(model_mars) -->
+<!-- plot(varimp_mars, main = "Variable Importance with MARS") -->
+
+
+<!-- model_mars -->
+
+<!-- predicted <- predict(model_mars, testData) -->
+<!-- predicted -->
+
+<!-- confusionMatrix( -->
+<!--   reference = testData$band_type, -->
+<!--   data = predicted, -->
+<!--   mode = 'everything', -->
+<!--   positive = 'NOBAND' -->
+<!-- ) -->
+<!-- ``` -->
+
+## Random Forest
+
+- explain how it works
+- fit the model
+- results
+
+```{r}
+# random forest
+
+
+# Call the function:
+
+integ_mod_1 <- data_integrity_model(data = bands, model_name = "randomForest")
+integ_mod_1$data_ok
+
+
+# Any errors ?
+integ_mod_1
+
+set.seed(12345)
+model_rf <- randomForest(formula(band_type ~.),
+                          data= trainData,
+                          ntree=400, mtry=3,
+                          importance=TRUE,
+                          localImp=TRUE,
+                          na.action=na.roughfix,
+                          replace=FALSE)
+print(model_rf)
+
+head(round(importance(model_rf), 2))
+varImpPlot(model_rf)
+
+rf.pred<-predict(model_rf, testData, type="class")
+rf.pred
+
+table(true=testData$band_type, pred = rf.pred)
+
+CrossTable(x=testData$band_type, y=rf.pred, prop.chisq=FALSE)
+
+confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
+```
+
+
+
+## Nearest Neighbour Classification 
+
+we still have to fit this model
+
+
+- explain how it works
+- fit the model
+- results
+
+```{r}
+
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(3333)
+knn_fit <- train(band_type ~., data = trainData, method = "knn",
+ trControl=trctrl,
+ preProcess = c("center", "scale"),
+ tuneLength = 10)
+
+knn_fit
+
+test_pred_knn <- predict(knn_fit, newdata = testData)
+
+confusionMatrix(test_pred_knn, testData$band_type)
+```
+
+
+
+## Logistic Regression
+
+- explain how it works
+- fit the model
+- results
+
+
+```{r}
+# logistic regression
+
+fitControl <- trainControl(method = "none")
+
+model_lr <-
+  train(band_type ~ .,
+        data = trainData,
+        method = "glm",
+        trControl = fitControl)
+
+print(model_lr$finalModel)
+
+pred <- predict(model_lr, newdata = testData)
+
+print(table(pred))
+
+mat <-
+  confusionMatrix(data = pred,
+                  reference = testData$band_type,
+                  positive = "NOBAND")
+print(mat)
+
+# the results are very poor, so we will focus on other model, because this one would be difficult to improve
+
+```
+
+## Support Vector Machine 1
+
+- explain how it works
+- fit the model
+- results
+
+
+```{r}
+# SVM1
+
+fitControl <- trainControl(method = "cv", number = 5)
+
+model_svm <- train(
+  band_type ~ .,
+  data =
+    trainData,
+  method = "svmLinear",
+  trControl = fitControl,
+  tuneGrid = data.frame(C = 10)
+)
+print(model_svm)
+
+varimp_svm <- varImp(model_svm)
+varimp_svm
+plot(varimp_svm, main = "Variable Importance with SVM")
+
+
+print(confusionMatrix(
+  data = predict(model_svm, newdata =
+                   testData),
+  reference = testData$band_type,
+  positive = "NOBAND"
+))
+
+
+
+
+```
+
+## Support Vector Machine 2
+
+- explain how it works
+- fit the model
+- results
+
+```{r}
+#SVM2
+
+
+model_svm2 <- train(band_type ~ .,
+                          data = trainData, 
+                          method = "svmRadialCost",
+                          preProcess = "range",
+                          trace = FALSE,
+                          trControl = trainControl(method = "repeatedcv", number = 10, repeats = 10, 
+                                                  verboseIter = FALSE))
+model_svm2
+
+plot(model_svm2)
+
+print(confusionMatrix(
+  data = predict(model_svm2, newdata =
+                   testData),
+  reference = testData$band_type,
+  positive = "NOBAND"
+))
+
+
+
+# # this one takes a lot of time
+# C <- c(0.25, 0.1, 0.5, 1)
+# sigma <- c(0.01, 0.1, 1)
+# gr.radial<-expand.grid(C = C, sigma = sigma)
+# 
+# model_svm3<- train(band_type ~ .,
+#                           data = trainData,
+#                           method = "svmRadial",
+#                           preProcess = "range",
+#                           trace=FALSE,
+#                           trControl = trainControl(method = "repeatedcv", number = 10, repeats = 5, 
+#                                                   verboseIter = FALSE),
+#                           tuneGrid=gr.radial)
+# 
+# 
+# model_svm3
+# 
+# plot(model_svm3)
+# 
+# print(confusionMatrix(
+#   data = predict(model_svm3, newdata =
+#                    testData),
+#   reference = testData$band_type,
+#   positive = "NOBAND"
+# ))
+```
+
+
+## Neural Network
+
+- explain how it works
+- fit the model
+- results
+
+```{r neural network model}
+
+# numFolds <-
+#   trainControl(
+#     method = 'cv',
+#     number = 1,
+#     classProbs = TRUE,
+#     verboseIter = TRUE,
+#     summaryFunction = twoClassSummary,
+#     preProcOptions = list(
+#       thresh = 0.75,
+#       ICAcomp = 3,
+#       k = 5
+#     )
+#   )
+# fit2 <-
+#   train(
+#     band_type ~ . - band_type,
+#     data = trainData,
+#     method = 'nnet',
+#     preProcess = c('center', 'scale'),
+#     trControl = numFolds,
+#     tuneGrid = expand.grid(size = c(10), decay = c(0.1))
+#   )
+
+
+
+
+model_nnet <- caret::train(band_type ~ ., data = trainData, method = "nnet", preProcess = "range", 
+    trace = FALSE, trControl = trainControl(method = "cv"))
+
+model_nnet
+
+varimp_nnet <- varImp(model_nnet)
+varimp_nnet
+plot(varimp_nnet, main = "Variable Importance with Nnet")
+
+results1 <- predict(model_nnet, newdata = testData)
+results1
+
+conf1 <-
+  confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
+conf1
+
+
+
+```
+
+## Classification Tree
+
+- explain how it works
+- fit the model
+- pruning...
+- results
+
+```{r}
+
+library(rpart)
+library(rpart.plot)
+# Build the model
+set.seed(123)
+model_cart <- rpart(band_type ~., data = trainData, method = "class")  
+model_cart
+summary(model_cart)
+
+# pruning
+par(pty = "s")
+with(model_cart, plot(cptable[, 3], xlab = "Tree Number", ylab = "Resubstitution Error (R)", 
+    type = "b"))
+
+# Plot the trees
+rpart.plot(model_cart, box.palette = "RdBu", nn = FALSE)
+
+printcp(model_cart)
+
+
+#pruning
+cart_prune <- prune(model_cart, cp = 0.01)
+
+
+
+cart.pred<-predict(model_cart, testData, type="class")
+cart.pred
+
+table(true=testData$band_type, pred = cart.pred)
+
+CrossTable(x=testData$band_type, y=cart.pred, prop.chisq=FALSE)
+
+confusionMatrix(cart.pred, testData$band_type, positive = 'NOBAND')
+
+predict_cart <- predict(model_cart, newdata = testData)
+
+
+```
+
+## Linear Discriminant Analysis
+
+- explain how it works
+- fit the model
+- results
+
+```{r}
+
+# # linear discriminant analysis
+# 
+# trainDataLda <- trainData[, -c(18)]
+# testDataLda <- testData[, -18]
+# 
+# # Estimate preprocessing parameters
+# preproc.param <- trainDataLda %>% 
+#   preProcess(method = c("center", "scale"))
+# # Transform the data using the estimated parameters
+# train.transformed <- preproc.param %>% predict(trainDataLda)
+# test.transformed <- preproc.param %>% predict(testDataLda)
+# 
+# 
+# 
+# library(MASS)
+# # Fit the model
+# model_lda <- lda(band_type ~., data = train.transformed)
+# # Make predictions
+# predictions <- model_lda %>% predict(test.transformed)
+# # Model accuracy
+# mean(predictions$class==test.transformed$band_type)
+# 
+# model_lda
+# plot(model_lda)
+
+# lda.data <- cbind(train.transformed, predict(model_lda)$x)
+# ggplot(lda.data, aes(LD1, LD2)) +
+#   geom_point(aes(color = band_type))
+```
+
+
+
+
 
 
 
