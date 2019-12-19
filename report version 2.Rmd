@@ -18,6 +18,8 @@ text-align: justify}
 </style> 
 
 
+<br/><br>
+Here is the list of libraries that have been used throughout the project.
 ```{r, message=FALSE, warning=FALSE}
 library(here)
 library(Hmisc)
@@ -44,8 +46,7 @@ library(DMwR)
 
 # Introduction
 
-Data science is gaining more ground in this day and age and decision making based on machine learning algorithms is a big part of it. It intends to assist the user in taking fast and smart decision in an era where time management stands as a competitive advantage and minimising risks, monetary or reputational, are the pinnacle for the success. Would a machine learning algorithm be able to predict the RTD Tea drinks consumption in Spain? What are the factors that are driving the consumption? Are they the same in the neighbourhood country? This report will
-answer these questions and touch upon new discussions. The paper is built in two parts. The first one is an introduction to the background of the topic, an overview of the data sources and of the data manipulation. The second part consists of the analysis of the data, the statistical models used and the final discussion
+Data science is gaining more ground in this day and age and decision making based on machine learning algorithms is a big part of it. It intends to assist the user in taking fast and smart decision in an era where time management stands as a competitive advantage and minimising risks, monetary or reputational, are the pinnacle for the success. Would a machine learning algorithm be able to predict which product is more likely to have a defect? What are the factors that are contributing to having a defect product?  In this report we are investigating the questions here above as we will try to solve the problem of a printing company that is facing issues with the quality of their products. The paper is built in two parts. The first one is an introduction to the background of the topic, an overview of the data sources and of the data manipulation. The second part consists of the analysis of the data, the statistical models used and the final discussion. The report will further on be presented as a client report.
 
 - purpose of the course
 - the benefit of Machine Learning in general
@@ -114,6 +115,7 @@ The first task to analyze a dataset is to inspect all the variables and their va
 
 ```{r str, echo=FALSE, fig.cap= 'Figure 1', fig.align='center'}
 str(bands)
+
 ```
 
 It can be noticed that during import, the sytsem classified some numeric variables as factors. In this respect, a transformation  will be performed in order to correct the missclassification. Furthermore, the data are not recorded in a consistent way for all the observations: part of inputs  are in upper cases and some are in lower cases. This can occur when  different people are in charge to record the data or it could be related to the different practices among  the locations from where the data comes from. This problem can lead to a bad data perception, so it has been decided to trasnform all categorical data to upper cases. 
