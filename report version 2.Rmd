@@ -44,13 +44,23 @@ library(DMwR)
 
 
 
-# Executive summary
 
-## Challenges
+Quality issues related to the final products have been dected within the printing company.  During the print run process, grooves are sometimes formed in the cylinder, which leads to a product with defects, that cannot be provided to the customer. Moreover, when this type of quality related problem is detected, the run is suspended and the cylinder has to be removed and fixed before using it again in production. This event  disrupts the manufacturing process thus raising the risk of delaying the delivery date of the costumer order, but also translats im the fact that the efficiency of the whole operation is slowed down by turning off production, removing the cylinder and replacing it. These factors in turn decrease profits, as the machine is not producing as many final products as it should be and the employees are payed for idle time. Moreover, the costs increase as repair costs occur.
 
-- describe the problem
-- describe the dataset
-- response variable
+Given the situation described again, the company has decided to investigate why the defects are generated during the runs. For this, the firm has gather data on 512 observations. The atttributes that describe these data points are mounting 40, out of which 20 attributes are numeric and 20 are nominal.The variable of interest is represented by the class band type, which in turn is formed by 312 instances of "no band" and 200 instances of "band".
+
+
+```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
+
+knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes1.PNG")
+
+```
+
+```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
+
+knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes2.PNG")
+
+```
 
 ## Analysis
 
@@ -59,7 +69,7 @@ library(DMwR)
 
 ## Results
 
-- show results, accuracies
+- show results, ac-curacies
 - recommendations and implementations
 
 
@@ -82,7 +92,7 @@ library(DMwR)
 # Data processing
 
 - explain the purpose of data cleaning
-- why it is so important in data analytics
+- why it is so important in data analytic
 
 
 ## Loading data
@@ -102,7 +112,7 @@ The first task to analyze a dataset is to have a look at all the variables and t
 str(bands)
 ```
 
-We notice that there are some numerical and nominal attributes. To be precise, 20 numerical variables and 19 nominal variables, including the response variable, band_type. There are some nominal variables with a high number of levels, which means that they will not be really useful for a potential classification task; we will see further what to do with these ones. On the other hand, variables with only one level will be deleted, because they don't bring any information for the classification. We notice also that the dataset is not standardized, which means that the value are not recorded the same way depending on the observations; it appears that sometimes, the values are in lower cases and sometimes in upper cases, so we have to standardize it to get real insights from the data. Important informations comes from the missing values, which are numerous. We will discuss also further what to do with these ones. 
+We notice that there are some numerical and nominal attributes. To be precise, 20 numerical variables and 19 nominal variables, including the response variable, band_type. There are some nominal variables with a high number of levels, which means that they will not be really useful for a potential classification task; we will see further what to do with these ones. On the other hand, variables with only one level will be deleted, because they don't bring any information for the classification. We notice also that the dataset is not standardized, which means that the value are not recorded the same way depending on the observations; it appears that sometimes, the values are in lower cases and sometimes in upper cases, so we have to standardize it to get real insights from the data. Important information comes from the missing values, which are numerous. We will discuss also further what to do with these ones. 
 
 As we were aware, this dataset needs a lot of cleaning before to be analyzed.
 
