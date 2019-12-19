@@ -42,7 +42,20 @@ library(DMwR)
 
 ```
 
+# Introduction
 
+Data science is gaining more ground in this day and age and decision making based on machine learning algorithms is a big part of it. It intends to assist the user in taking fast and smart decision in an era where time management stands as a competitive advantage and minimising risks, monetary or reputational, are the pinnacle for the success. Would a machine learning algorithm be able to predict the RTD Tea drinks consumption in Spain? What are the factors that are driving the consumption? Are they the same in the neighbourhood country? This report will
+answer these questions and touch upon new discussions. The paper is built in two parts. The first one is an introduction to the background of the topic, an overview of the data sources and of the data manipulation. The second part consists of the analysis of the data, the statistical models used and the final discussion
+
+- purpose of the course
+- the benefit of Machine Learning in general
+
+
+
+## Case description
+
+- describe the problem
+- benefit of Machine Learning in this special case
 
 
 Quality issues related to the final products have been dected within the printing company.  During the print run process, grooves are sometimes formed in the cylinder, which leads to a product with defects, that cannot be provided to the customer. Moreover, when this type of quality related problem is detected, the run is suspended and the cylinder has to be removed and fixed before using it again in production. This event  disrupts the manufacturing process thus raising the risk of delaying the delivery date of the costumer order, but also translats im the fact that the efficiency of the whole operation is slowed down by turning off production, removing the cylinder and replacing it. These factors in turn decrease profits, as the machine is not producing as many final products as it should be and the employees are payed for idle time. Moreover, the costs increase as repair costs occur.
@@ -73,32 +86,23 @@ knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in
 - recommendations and implementations
 
 
-# Introduction
 
-- purpose of the course
-- the benefit of Machine Learning in general
+<!-- ## Source of data -->
 
-## Source of data
-
-- where the data comes from
-- quick description of the data
+<!-- - where the data comes from -->
+<!-- - quick description of the data -->
 
 
-## Case description
+<!-- # Data processing -->
 
-- describe the problem
-- benefit of Machine Learning in this special case
-
-# Data processing
-
-- explain the purpose of data cleaning
-- why it is so important in data analytic
+<!-- - explain the purpose of data cleaning -->
+<!-- - why it is so important in data analytic -->
 
 
 ## Loading data
 
 
-
+The data has  been provided in a csv format. As stated before, the file contrains 512 ponservations. The imported file has been saved in a variable named "bands". The next part focuses on data description, in order to gather and understand as much insights about the variables as possible. This is a very important step before plinging into  the model creation, as it allows the user to familariaze itself with the data set, 
 ```{r}
 bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 ```
@@ -106,19 +110,24 @@ bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 
 ## Data visualization
 
-The first task to analyze a dataset is to have a look at all the variables and their values. 
+The first task to analyze a dataset is to inspect all the variables and their values. In order to do that, the 'str' was applied and the results are showed here below.
 
 ```{r str, echo=FALSE, fig.cap= 'Figure 1', fig.align='center'}
 str(bands)
 ```
 
-We notice that there are some numerical and nominal attributes. To be precise, 20 numerical variables and 19 nominal variables, including the response variable, band_type. There are some nominal variables with a high number of levels, which means that they will not be really useful for a potential classification task; we will see further what to do with these ones. On the other hand, variables with only one level will be deleted, because they don't bring any information for the classification. We notice also that the dataset is not standardized, which means that the value are not recorded the same way depending on the observations; it appears that sometimes, the values are in lower cases and sometimes in upper cases, so we have to standardize it to get real insights from the data. Important information comes from the missing values, which are numerous. We will discuss also further what to do with these ones. 
+It can be noticed that during import, the sytsem classified some numeric variables as factors. In this respect, a transformation  will be performed in order to correct the missclassification. Furthermore, the data are not recorded in a consistent way for all the observations: part of inputs  are in upper cases and some are in lower cases. This can occur when  different people are in charge to record the data or it could be related to the different practices among  the locations from where the data comes from. This problem can lead to a bad data perception, so it has been decided to trasnform all categorical data to upper cases. 
 
-As we were aware, this dataset needs a lot of cleaning before to be analyzed.
+In addition. it has been observed that some nominal variables are characterized by  a high number of levels, which means that they will not be really useful for a potential classification task. At this stage, no transformation will be performed regarding this matter, but the subject will be rediscssed further in the report.
+
+At the same time, variables with only one level don't bring any information for the classification, so they will be removed from the dataset. 
+
+It has already become clear at this stage that this dataset needs to be cleaned before analysing it.
+
 
 ### Standardization of the dataset
 
-As seen before, the data are not recorded in the same way for all the observations. Some observations are in upper cases and some are in lower cases. This can occur when many different people are in charge to record the data or depending the location where the observations comes from. This problem can lead to a bad data perception, so we decided to put all the values in upper cases. 
+The first transformation is realated to the misclassification mentioned above (numeric variables classified as factors) and the transformation of the categorical variables to uppcarecase, so that the data is consistent.
 
 ```{r standardization, message=FALSE, warning=FALSE, include=FALSE}
 
@@ -134,6 +143,7 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 
 ```
+
 
 ```{r}
 table(bands$band_type)
@@ -168,7 +178,10 @@ bands.sample$cylinder_no <- as.factor(substr(bands.sample$cylinder_no, 0, 1))
 ```
 
 
-Here is an overview of the dataset:
+
+
+Here below is an overview of the dataset.
+
 
 ```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable', fig.align='center'}
 kable(bands, 'html') %>%
@@ -178,7 +191,8 @@ kable(bands, 'html') %>%
 
 ## Missing values
 
-We will focus now on the missing values, which makes this dataset so special. In fact we observe a lot of missing value and we have to decide what to do with them. 
+The next step is having a closer look at the missing variables. First the 'plot_intro'  and 'plot_na' functions were used to have a global viw of the status of the variables.
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 3',fig.align='center'}
 # bands %>% 
@@ -191,18 +205,18 @@ plot_intro(bands)
 
 ```
 
-We see from Figure 3, that 4.6 % of the data are missing and the complete rows, i.e. an observation containing a value for all the variables, represent only 51 % of the total observations. From Figure 4, we observe that all the NAs of the bands dataset comes from 28 variables, with a special mention for the **location** variables which counts 156 missing values (almost 30 % percent of the observations are missing). Then, almost 10 variables counts quite the same number of missing value, so we will try to understand if there is a explanation behind this. It should be noted that for these attributes, the percentage of NAs is almost 10 %.  
+It can be observed  from Figure 3, that 4.6 % of the data is missing and the complete rows(i.e. an observation containing a value for all the variables)  represents only 51 % of the total observations.
 
 ```{r percentage na, fig.cap= 'Figure 4: Prevalence of NAs', fig.align='center'}
 
 x<-inspect_na(bands)
 show_plot(x, col_palette=2)
 ```
-
+Figure 4 shows that all the 'NAs' of the bands dataset come from a total of  28 variables, with a special mention for the **location** variables which counts 156 missing values (almost 30 % percent of the observations are missing). Then, a total of  10 variables have the same amount of missing values (an average of 57) that account for 10% of the observatios in each attribute. The repeating patterns drives to a further analysis of the missing values, which was performed in the falowing part.
 
 ### Structure of the missing values
 
-In order to analyze the structure of the missing values, we plot them in rows; that will allow to see if there is a link between the NAs. 
+As stated before, to investigate the findings mentioned above related to the identical pourcentage of missing values, another  plot  was proposed to have a better look at the distribution of missing values. Having said that, the  graph below represents the missing values per variable per row. 
 
 ```{r structure of NAs, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 5: Missing values in rows', fig.align='center'}
 
@@ -223,7 +237,9 @@ row.plot <- bands %>%
 row.plot
 ```
 
-We get some interesting informations from Figure 5; the repartition of missing values seems to be concentrated in the very last observations. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, they decided to not record these specific variables anymore. 13 variables are missing from the 486th observation, which means that we lost a lot of informations. We have to wonder if it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows but would also reduce drastically the number of missing values that we don't have to replace by an imputation method (knn, mean, median...). Keeping them and replacing the missing values for the 13 variables by an imputation method would not make any sense as more than 30 % of the variables in the observations are created from assumptions (13 out 40). Based on this point, we decide to delete the last 54 consecutive observations of the dataset, which will give us a dataset with 485 observations. 
+Figure 5 is confirming the intuition preveiously stated. The repartition of missing values seems to be concentrated in the very last observations for several variables. This indicates that chuncks of consecutive values are missing. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, they decided  not to record these specific variables anymore. 
+
+For a total of 13 variables, information is missing starting the 486th observation, which means that information is lost on the respective variables. This raises the question of weather it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows but would also reduce drastically the number of missing values that we don't have to replace by an imputation method (knn, mean, median...). Keeping them and replacing the missing values for the 13 variables by an imputation method would not make any sense as more than 30 % of the variables in the observations are created from assumptions (13 out 40). Based on this point, we decide to delete the last 54 consecutive observations of the dataset, which will give us a dataset with 485 observations. 
 
 ```{r delete last obs, message=FALSE, warning=FALSE}
 #Delete the last rows that have consecutive missing data
@@ -635,10 +651,10 @@ integ_mod_1$data_ok
 integ_mod_1
 
 set.seed(12345)
-model_rf <- randomForest(formula(band_type ~.), 
-                          data= trainData, 
-                          ntree=400, mtry=3, 
-                          importance=TRUE, 
+model_rf <- randomForest(formula(band_type ~.),
+                          data= trainData,
+                          ntree=400, mtry=3,
+                          importance=TRUE,
                           localImp=TRUE,
                           na.action=na.roughfix,
                           replace=FALSE)
@@ -663,6 +679,7 @@ confusionMatrix(rf.pred, testData$band_type, positive = 'NOBAND')
 
 we still have to fit this model
 
+
 - explain how it works
 - fit the model
 - results
@@ -682,6 +699,7 @@ test_pred_knn <- predict(knn_fit, newdata = testData)
 
 confusionMatrix(test_pred_knn, testData$band_type)
 ```
+
 
 
 ## Logistic Regression
