@@ -354,7 +354,7 @@ datatable(bands1,
 
 ## Outliers
 
-After a close verification of the boxplots and the summary for each variable, it has been concluded that there are no error measurements and neither error entries in the data. Please refer to the Annexe1,to see outputs of the analysis.
+After a close verification of the boxplots and the summary for each variable, it has been concluded that there are no error measurements and neither error entries in the data. Please refer to the Annexe1, to see the voxplots.
 
 ```{r, message=FALSE, warning=FALSE, include=FALSE}
 
@@ -368,11 +368,11 @@ for (i in numeric_column) {
 }
 
 ```
-Here below you 
+Here below a short summary of the numerical variables.
 
 ```{r}
 
-quanti<-1:18
+quanti<-1:length(names(select_if(bands1, is.numeric)))
 mat<-matrix(0, length(quanti), 7)
 colnames(mat)<-c("Min.", "1st Qu.", "Median", "Mean", "Sd", "3rd Qu.", "Max.")
 rownames(mat)<-names(select_if(bands1, is.numeric))
@@ -419,9 +419,14 @@ bands1%>%
 
 ## test and train sets
 
-In order to construct algorithm that can learn from themselves and make predictions on new data, the database has to be split in two part: a test set and a train set. The model is first fitted on the train set and the predictions would be done on the test set.
+In order to construct algorithms that can learn from the data that is provided and to be able to make predictions on new instances, the cleaned database was split in two sunsets: a train set and a test set. The model is first fitted on the train set and the predictions would be done on the test set.
 
-The general method to split the whole dataset is to extract 75% of the dataset, which will be put in the train set, and the remaining 25% will be put in the test set. The **caret** package has a very useful function (**createDataPartition**) to do this task and allows to keep the same repartition of each classes in the two sets. 
+The general method to split the whole dataset is to extract 75% of the dataset, which will constitute the train set, and the remaining 25% will represent the test set. The **caret** package has a very useful function (**createDataPartition**) to do this task and allows to keep the same repartition of each classes in the two sets. This function has been used throughout all the models.
+
+
+All the models have been created using the 'caret' package. The **trControl** option of the **caret** package,  allows to include  computational nuances of the train function. For this  model a **repeatedcv** option has been chosen as the method of resampling.  This implies that the training dataset will be divided randomly into 10 parts. Each chunck will serve in turns as a test set for the model that has been buid using the other nine datasets (which sereved as a trin set). This **repeatedcv** option leads to robust models and for this reason the method will be also present for the other models. 
+
+Other option that will be used in all the models that are presented in this paper is the **sampling = 'down'** option of **trControl**. This feature will correct the problem of unbalanced classes in the dataset. This is an essential aspect as the class **BAND** has fewer instances than the class **NOBANDS**. The scope of the models is to predict with the most higher accuracy the observations classified as **BAND**. 
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -444,14 +449,19 @@ table(trainData$band_type)
 table(testData$band_type)
 ```
 
+
+
 ## Random Forest
 
 
 
-The Random Forest algorithm performs training on multiple decision trees trained on slightly different subsets of data. The **caret** package has some useful option that could be integrated on the **trControl** which allows to control the computational nuances of the train function. For this Random Forest model we set a **repeatedcv** option for the method of resampling  Here the training dataset will be divided randomly into 10 parts and then using each of the 10 parts as testing dataset for the model trained on the other 9 datasets. This options give some robust models and that is why the method will be implemented also for the other models. An other option that will be often used is the **sampling = 'down'**, this will correct the problem of unbalanced classes in the dataset. This is essential in this case, as the scope is to predict with the most higher accuracy the observations classified as **BAND**. The package gives the possibility to interpret the variables of the dataset that are perceived as important for the selected model. This option will be useful when some simpler models will be tested, because it can plot only the most important variables considered as important for the model.
+The Random Forest algorithm is an ensemble learning technique. The algorithm builds multiple decision trees that are trained on  different subsets of data of the training set. The predictions are then averaged, in order to create the final output.
 
 
-```{r}
+The Random Forest model gives the possibility to view the variables of the dataset that are perceived as important for the selected model. This information could be used to build new models that are using only the varriables that have been labeled as important, thus reducing the complexity of the model.
+
+
+```{r message=FALSE, warning=FALSE, include= FALSE}
 integ_mod_1 <- data_integrity_model(data = bands1, model_name = "randomForest")
 integ_mod_1$data_ok
 
@@ -467,54 +477,39 @@ model_rf <- caret::train(band_type ~ .,
                          trControl=trainControl(method="repeatedcv", number=10,
                                                 repeats=10, verboseIter=FALSE, sampling = "down"))
 weather.pred.1 <- predict(model_rf, testData)
-confusionMatrix(weather.pred.1, testData$band_type, positive = 'NOBAND')
-
-varimp_rf <- varImp(model_rf)
-varimp_rf
-plot(varimp_rf, main = "Variable Importance with SVM")
 
 
 ```
+
+
+```{r}
+confusionMatrix(weather.pred.1, testData$band_type, positive = 'NOBAND')
+```
+
+The first model gives an accuracy of 77%, with sensitivity reaching 76% and specifity being 79%. This first reasults are encouriging, as the class that interests most is "BAND" and the model is able to predict 34 times correct out of a total of 43 instances. 
+
+
+
 Interpretation
 - first model so no points of comparison
 - accuracy of 77% 
 - better specificity than sensitivity -> predict better Band than Noband(?)
 - results seems acceptable, waitng to compare with others models
 
-
 ```{r}
+
 varimp_rf <- varImp(model_rf)
-varimp_rf
-plot(varimp_rf, main = "Variable Importance with SVM")
+plot(varimp_rf, main = "Variable Importance with Random Forest")
 
-bands.rf <- bands1[, which(
-    names(bands1) %in% c(
-      "blade_pressure", 
-      "press", 
-      "press_speed", 
-      'ink_pct', 
-      'viscosity',
-      'ink_temperature',
-      'proof_cut',
-      'band_type',
-      "humidity",
-      'solvent_pct',
-      'varnish_pct'
-    )
-  )]
 ```
+The plot  lists the variables  in the order of importance. According to the model, the variables **press_speed**, **viscosity**, **blade_pressure**, **press**, **proof_cut** are the top five attributes that explain the variable of interest.
 
-- here we plot the variables with the most important according to Random Forest
--be useful for further analysis
-- we will compute simpler models 
+
 
 ## Nearest Neighbour Classification 
+The next model used in the analysis in the Nearest Neighbour Classifier, 
 
-- repeatedcv in trainControl, see RF ( Ana we don't need to put the description of the options each time I think)
-- sampling = down
-
-
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3, sampling = 'down')
 set.seed(3333)
@@ -527,8 +522,14 @@ knn_fit
 
 test_pred_knn <- predict(knn_fit, newdata = testData)
 
+
+```
+
+```{r}
 confusionMatrix(test_pred_knn, testData$band_type, positive = 'NOBAND')
 ```
+
+The second  model provided an accuracy of 69%, lower than the one resulted from using the Random Forest algoristh. The sensitivity level and Specificity are 67% and 72% respectively. The two measures have also decresed in contrast with the previous model, but the poucentage for Specificity is still above 70% and given that the company is most interested in predicting well the **BANDS* instances, this model can still be considered satisfying. 
 
 interpretation
 - Accuracy was used to select the optimal model using the largest value.
@@ -540,10 +541,10 @@ The final value used for the model was k = 9.
 
 ## Logistic Regression
 
+The third model that has been considered is the Logistic regression. As in the case of the other models, the model has been buid using caret.
 
 
-
-```{r}
+```{r message=FALSE, warning=FALSE}
 # logistic regression
 
 fitControl <- trainControl(method = "repeatedcv", sampling = 'down', )
@@ -569,6 +570,10 @@ print(mat)
 # the results are very poor, so we will focus on other model, because this one would be difficult to improve
 
 ```
+
+In the case of Logistic regression, the an accuracy has a level of 74%. The Sensitivity level and Specificity are 76% and 69% respectively. It is interesting as this model is better at predicting the **NOBANDS** rather thand **BANDS**, as opposed to the two previous models. 
+
+For the moment this model is the least important as the Specificity is the lowest, and the prior models offered better results for the prediction of this class.
 
 ## Support Vector Machine 1
 
@@ -717,43 +722,6 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 ```
 
-## Linear Discriminant Analysis
-
-- explain how it works
-- fit the model
-- results
-
-```{r}
-
-# # linear discriminant analysis
-# 
-# trainDataLda <- trainData[, -c(18)]
-# testDataLda <- testData[, -18]
-# 
-# # Estimate preprocessing parameters
-# preproc.param <- trainDataLda %>% 
-#   preProcess(method = c("center", "scale"))
-# # Transform the data using the estimated parameters
-# train.transformed <- preproc.param %>% predict(trainDataLda)
-# test.transformed <- preproc.param %>% predict(testDataLda)
-# 
-# 
-# 
-# library(MASS)
-# # Fit the model
-# model_lda <- lda(band_type ~., data = train.transformed)
-# # Make predictions
-# predictions <- model_lda %>% predict(test.transformed)
-# # Model accuracy
-# mean(predictions$class==test.transformed$band_type)
-# 
-# model_lda
-# plot(model_lda)
-
-# lda.data <- cbind(train.transformed, predict(model_lda)$x)
-# ggplot(lda.data, aes(LD1, LD2)) +
-#   geom_point(aes(color = band_type))
-```
 
 
 
@@ -770,6 +738,34 @@ knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in
 
 ```
 
+
+
+
+```{r}
+varimp_rf <- varImp(model_rf)
+varimp_rf
+plot(varimp_rf, main = "Variable Importance with SVM")
+
+bands.rf <- bands1[, which(
+    names(bands1) %in% c(
+      "blade_pressure", 
+      "press", 
+      "press_speed", 
+      'ink_pct', 
+      'viscosity',
+      'ink_temperature',
+      'proof_cut',
+      'band_type',
+      "humidity",
+      'solvent_pct',
+      'varnish_pct'
+    )
+  )]
+```
+
+- here we plot the variables with the most important according to Random Forest
+-be useful for further analysis
+- we will compute simpler models 
 
 ```{r}
 # Random forest with only important variable
