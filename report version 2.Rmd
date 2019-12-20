@@ -491,6 +491,7 @@ confusion_matrix_RF
 The first model gives an accuracy of 77%, with sensitivity reaching 76% and specificity being 79%. This first results are encouraging, as the class that interests most is "BAND" and the model is able to predict 34 times correct out of a total of 43 instances. 
 
 
+
 ```{r, fig.width = 10, fig.height = 8}
 
 varimp_rf <- varImp(model_rf)
@@ -527,13 +528,6 @@ confusion_matrix_KNN
 ```
 
 The second  model provided an accuracy of 69%, lower than the one resulted from using the Random Forest algorithm. The sensitivity level and Specificity are 67% and 72% respectively. The two measures have also decreased in contrast with the previous model, but the percentage for Specificity is still above 70% and given that the company is most interested in predicting well the **BANDS* instances, this model can still be considered satisfying. 
-
-interpretation
-- Accuracy was used to select the optimal model using the largest value.
-The final value used for the model was k = 9.
-- accuracy 69% 
-- below the RF 
-- 
 
 
 ## Logistic Regression
@@ -702,10 +696,7 @@ This model also provides a visualization of the features that are considered the
 
 ## Classification Tree
 
-- explain how it works
-- fit the model
-- pruning...
-- results
+
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
@@ -741,10 +732,14 @@ confusion_matrix_CART <- confusionMatrix(cart.pred, testData$band_type, positive
 confusion_matrix_CART
 ```
 
+
+This classification tree is not the best model in term of accuracy, but it is quite easy to understand and to show to the clients. On the right hand side there are some really good predictions of class **NOBAND** with a lot of observations in this category. Almost 57% of the observations are in this situation with an accurate probability of at least 88%. So here is the classic example of the processus when everything works well. The tree allows also to spot the classic example of when the processus is defectuous, as there is one branch of the tree which predict the class **BAND** with an accurate score of 100%. This could be useful for the clients as an example of what type of value to avoid in the processus. The importance of the cylinder_no variable makes a lot of sense here, as it represent the first split of the tree. 
+
 ## Comparing Variable Importance plots
 
 ```{r, fig.height=c(15), fig.width=c(10)}
 grid.arrange(plot_var_RF, plot_var_Nn,plot_var_SVM1, plot_var_SVM2,  nrow=2, ncol=2)
+
 ```
 
 ## Comparing the results of confusion matrix
