@@ -118,7 +118,7 @@ bands %>%
 
 ```
 
-```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2b: Datatable', fig.align='center'}
+```{r datatable, echo=FALSE, message=FALSE, warning=FALSE,  fig.align='center'}
 kable(bands, 'html') %>%
   kable_styling(bootstrap_options = c("striped", "hover")) %>%
    scroll_box(width = "100%", height = "400px")
@@ -398,16 +398,10 @@ kable() %>%
 
 # Exploratory Data Analysis
 
-Th Variables have been plotted against the variables of interest, 'band_type'.
+The Variables have been plotted against the variables of interest, 'band_type'.
 
-```{r fig.height= 12}
 
-plot_boxplot(bands1, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
-
-```
-
-```{r, fig.width = 10, fig.height = 20}
-
+```{r, fig.width = 10, fig.height = 40}
 
 bands1%>%
   explore_all(target = band_type)
@@ -497,14 +491,7 @@ confusion_matrix_RF
 The first model gives an accuracy of 77%, with sensitivity reaching 76% and specificity being 79%. This first results are encouraging, as the class that interests most is "BAND" and the model is able to predict 34 times correct out of a total of 43 instances. 
 
 
-
-Interpretation
-- first model so no points of comparison
-- accuracy of 77% 
-- better specificity than sensitivity -> predict better Band than Noband(?)
-- results seems acceptable, waiting to compare with others models
-
-```{r}
+```{r, fig.width = 10, fig.height = 8}
 
 varimp_rf <- varImp(model_rf)
 plot_var_RF =plot(varimp_rf, main = "Variable Importance with Random Forest")
@@ -512,23 +499,6 @@ plot_var_RF
 
 
 ```
-
-
-The plot  lists the variables  in the order of importance. According to the model, the variables 
-- 'blade_pressure',
-- 'press',
-- 'press_speed', 
-- 'ink_pct', 
-- 'viscosity',
-- 'ink_temperature',
-- 'proof_cut',
-- 'band_type',
-- "humidity",
-- 'solvent_pct',
-- 'varnish_pct' 
-
-are the top ten  attributes that explain the variable of interest. 
-
 
 
 
@@ -647,8 +617,8 @@ An interesting feature of this model is that as for the Random Forest, it provid
 
 ```{r}
 varimp_svm <- varImp(model_svm)
-varimp_svm
-plot(varimp_svm, main = "Variable Importance with SVM")
+plot_var_SVM1 <- plot(varimp_svm, main = "Variable Importance with SVM1")
+plot_var_SVM1
 ```
 
 ## Support Vector Machine 2
@@ -682,6 +652,15 @@ confusion_matrix_SVM2
 
 ```
 The second SVM model offers good percentages in terms of Accuracy, Sensitivity and Specificity. 
+
+
+```{r}
+
+varimp_svm2 <- varImp(model_svm2)
+plot_var_SVM2 <- plot(varimp_svm2, main = "Variable Importance with SVM2")
+plot_var_SVM2
+```
+
 
 
 ## Neural Network
@@ -762,19 +741,13 @@ confusion_matrix_CART <- confusionMatrix(cart.pred, testData$band_type, positive
 confusion_matrix_CART
 ```
 
+## Comparing Variable Importance plots
 
-- not the best model in term of accuracy
-- but easy to understand and to show to client
-- on the right hand side there are some really good predictions with a lot of observations in this category (see percentage)
-- also success to predict a defectuous product with 100% of probability (the 4th categorie) 
-- cylinder_no really important as it it the first split
-
-
-```{r, fig.height=c(7), fig.width=c(10)}
-grid.arrange(plot_var_RF, plot_var_Nn, plot_var_SVM2, nrow=1, ncol=3)
+```{r, fig.height=c(15), fig.width=c(10)}
+grid.arrange(plot_var_RF, plot_var_Nn,plot_var_SVM1, plot_var_SVM2,  nrow=2, ncol=2)
 ```
 
-
+## Comparing the results of confusion matrix
 
 ```{r}
 comparing_results <- rbind(round(confusion_matrix_RF$byClass,2), round(confusion_matrix_KNN$byClass,2), round(confusion_matrix_Logistic$byClass,2), round(confusion_matrix_SVM1$byClass,2), round(confusion_matrix_SVM2$byClass,2),round(confusion_matrix_NN$byClass,2), round(confusion_matrix_CART$byClass,2))
@@ -790,15 +763,26 @@ comparing_results
 ```
 
 
+## Simple model
 
+As for now the random forest has offered the best results in terms of accuracy, sensitivity and specificity. As the model uses over 20 variables, it is considered that it has a high level of complexity. For this reason, a new model is proposed, one that uses the first 10 variables that resulted to be the most important at predicting the variable of interest suing the Random Forest algorithm. 
 
-As for now the random forest has offered the best results in terms of accuracy, sensitivity and specificity. As the model uses over 20 variables, it is considered that it has a high level of complexity. For this reason, a new model is proposed, one that uses the first 10 variables that resulted to be the most important at predicting the variable of interest suing the Random Forest algorithm. This information can be retrieved from the plot below.
+According to the model, the variables 
+- 'blade_pressure'
+- 'press'
+- 'press_speed'
+- 'ink_pct'
+- 'viscosity'
+- 'ink_temperature'
+- 'proof_cut'
+- 'band_type'
+- "humidity"
+- 'solvent_pct'
+- 'varnish_pct' 
 
-```{r}
-plot(varimp_rf, main = "Variable Importance with Random Forest")
+are the top ten  attributes that explain the variable of interest. 
 
-```
-A new data base has been created in which information has been retained from the 10 most important attributes, and has been stored in the variable 'bands.rf'.
+A new data base has been created in which information has been retained for the above attributes, and has been stored in the variable 'bands.rf'.
 
 ```{r}
 
@@ -853,9 +837,13 @@ model_rf.imp <- caret::train(band_type ~ .,
                          trControl=trainControl(method="repeatedcv", number=10,
                                                 repeats=10, verboseIter=FALSE, sampling = "down"))
 prediction_simpler_model <- predict(model_rf.imp, testData.rf)
+
+
+
+```
+
+```{r}
 confusion_matrix_RF_simple=confusionMatrix(prediction_simpler_model, testData.rf$band_type, positive = 'NOBAND')
-
-
 ```
 
 
@@ -875,8 +863,32 @@ comparing_results
 
 
 
-The results are encouraging. The 
+The results are encouraging. The balance accuracy has decreased slightly , and the specificity actually increased as opposed to the complex model. In turn, the sensitivity dropped down to 0.67% from 0.77%. As the company is interested to predict as best as possible the **BANDS**. Having a model that is less complex and with a high specificity, this last model is recommended to the company.
+
+# Limitations and Recommendation
+
+## Standardization of the records
+
+The original dataset had a lot of shortcomings. First of all, only 51% of the rows have been complete. This translates in precious information that has been lost. Missing values have been replaced using an imputation method or have been deleted. In order to resolve this shortcoming, it is recommended to build a standardized internal reporting system that is shared in all the locations, in which the users fill in the data using predefined variable attributes.Also, the system should not allow the user the close the record without having recorded all the required information. 
+
+Having data is very important for any company in order to derive insights. But is as important to have clean and reliable data, as it allows to gain time in the analysis process and also to rely on more information in the model building. 
+
+## Improve CART model if possible
+
+The above analysis showed that models as Random Forest and Support Vector Machine are offering good results in terms of predictions. Nevertheless, these methods are hard to understand by those that do not have a background in the filed of analytics. It is important that the solutions that a data scientist is creating, to answer the business problem. In the case of the printing company, employees that are working directly with the machines should be able to use and interpret  the models that have been delivered. A classification tree would be very useful, as it is easy to interpret and detect if a product will have a **BAND** or **NOBAND**.
 
 
+## Investigation on the variable cylinder_no
+
+A further investigation needs to be made for the variable cylinder_no, the assumption that the first letter represents the location of the production or the number of the batch make sense but is not certified. An discussion with the clients could be useful to understand better the situation. Some features of the variable have some real problem, as some value are always producing defectuous product, so it would mean that all the batch is defectuous. If it is the case, a lot of problem could be avoid.
+
+## Simplification of the models
+A recommendations has to be made about the simplification of the models. In this analysis, it has been tried to simplify the model keeping in consideration 11 variables. This number is maybe still too high for the clients, as they maybe want a more simpler model with 4 or 5 precise variables. This could have been possible with a discussion with them.
+
+
+## Conclusion
+During the project, the team has cleaned, analysed and build models in order to detect predict the product that will have a defect at the end of the printing run. Different models have been tested and some of them as Random Forest and Support Vector Machine showed promising results in terms of predicting the variable of interest. A simplified model was tested using the classification of the importance variables that resulted from the Random Forest model and the results have been encouraging. A model with 10 variable has been proposed for the company with a good specificity rate.
+
+Whenever a model is built to help automatize a certain task, there are instances when the algorithm fails to predict the true values of the outcome. In some situations, there is no harm done by having false positives  or false negatives, but more than often there is an impact (for example: that predicting BAND and not having a BAND can also cost the company in the sense that the machine will be stopped and investigated, thus idle time on the machines and the time of the employee). The effect can be of monetary nature or is of non-quantitative shape. Nevertheless, the cost of classified outcomes can play a big role in the survival of a business or its reputation. This is why it is important for whomever uses an automated process to implement a feedback loop. That being said, if the company will decide to go through with the proposed model, the validity of it should be tested  with new data. It is even recommended that two or three models to be run in parallel and see their efficiency. A model that ran very well on the test set might very well not perform well on new data. Also a model that gave poor results, could actually predict very well the new instances. Both this scenario will bring a lot of insight to the analyst, who should use it in order to improve the model and understand better the interaction between the variables.
 
 
