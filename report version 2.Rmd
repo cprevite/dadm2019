@@ -37,6 +37,8 @@ library(funModeling)
 library(gmodels)
 library(data.table)
 library(DMwR)
+library(rpart)
+library(rpart.plot)
 
 ```
 
@@ -542,11 +544,7 @@ The final value used for the model was k = 9.
 ## Logistic Regression
 
 
-The third model that has been considered is the Logistic regression. As in the case of the other models, the model has been buid using caret.
-
-
-Logistic regression is binomial regression model widely used in machine learning when the dependent variable is categorical.
-
+The third model that has been considered is the Logistic regression. Logistic regression is binomial regression model widely used in machine learning when the dependent variable is categorical. As in the case of the other models, the model has been buid using caret.
 
 ```{r message=FALSE, warning=FALSE}
 # logistic regression
@@ -585,7 +583,7 @@ Support Vector Machines are supervised learning models, which task is to analyze
 
 
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # SVM1
 
 fitControl.svm <- trainControl(method = "cv", number = 5, sampling = 'down')
@@ -601,9 +599,14 @@ model_svm <- train(
 )
 print(model_svm)
 
-varimp_svm <- varImp(model_svm)
-varimp_svm
-plot(varimp_svm, main = "Variable Importance with SVM")
+
+
+
+```
+
+
+```{r}
+
 
 
 print(confusionMatrix(
@@ -614,17 +617,23 @@ print(confusionMatrix(
 ))
 
 
+```
 
 
+This model provides the lowest results so far, in terms both of accuracy and specificity. As the logistic regression, this model does a better job at predicting the class **NOBANDS** than **BANDS**.
+
+An interesting feature of this model is that as for the Random Forest, it provides a list of the variables that are considered to be the most important.
+
+```{r}
+varimp_svm <- varImp(model_svm)
+varimp_svm
+plot(varimp_svm, main = "Variable Importance with SVM")
 ```
 
 ## Support Vector Machine 2
 
-- explain how it works
-- fit the model
-- results
 
-```{r}
+```{r message=FALSE, warning=FALSE, include= FALSE}
 #SVM2
 
 
@@ -639,6 +648,12 @@ model_svm2
 
 plot(model_svm2)
 
+
+
+
+```
+
+```{r}
 print(confusionMatrix(
   data = predict(model_svm2, newdata =
                    testData),
@@ -647,15 +662,14 @@ print(confusionMatrix(
 ))
 
 
-
-
 ```
+The secont SVM model offers good percentages in terms of Accuracy, Sensitivity and Specificity. 
 
 
 ## Neural Network
 
 
-```{r neural network model}
+```{r neural network model, message=FALSE, warning=FALSE, include=FALSE}
 
 set.seed(890)
 model_nnet <- caret::train(band_type ~ ., data = trainData, method = "nnet", preProcess = "range", 
@@ -663,20 +677,33 @@ model_nnet <- caret::train(band_type ~ ., data = trainData, method = "nnet", pre
 
 model_nnet
 
-varimp_nnet <- varImp(model_nnet)
-varimp_nnet
-plot(varimp_nnet, main = "Variable Importance with Nnet")
-
 results1 <- predict(model_nnet, newdata = testData)
 results1
-
-conf1 <-
-  confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
-conf1
 
 
 
 ```
+
+
+```{r}
+
+conf1 <-
+  confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
+conf1
+```
+The Neural Network has less good results compared to teh other mdoels. This is not surprising, as normally this type of models works better when the dataset las big amount of datas to learn on, and in our case the data set has a total of 363 instances (75% of the total of 485 data points).
+
+```{r}
+
+varimp_nnet <- varImp(model_nnet)
+varimp_nnet
+plot(varimp_nnet, main = "Variable Importance with Nnet")
+
+
+
+
+```
+This model also provides a visualisation of the features that are considered the most importantfeatures, but as the model fails to provide good results in terms of predcitions, it is considered that the information would not be very helpful.
 
 ## Classification Tree
 
@@ -685,15 +712,17 @@ conf1
 - pruning...
 - results
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 
-library(rpart)
-library(rpart.plot)
 # Build the model
 set.seed(123)
 model_cart <- rpart(band_type ~., data = trainData, method = "class")  
 model_cart
 summary(model_cart)
+
+cart.pred<-predict(model_cart, testData, type="class")
+cart.pred
+
 
 # pruning
 par(pty = "s")
@@ -711,8 +740,6 @@ cart_prune <- prune(model_cart, cp = 0.01)
 
 
 
-cart.pred<-predict(model_cart, testData, type="class")
-cart.pred
 
 table(true=testData$band_type, pred = cart.pred)
 
@@ -724,7 +751,6 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 
 ```
-
 
 
 
@@ -742,12 +768,17 @@ knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in
 ```
 
 
-
+As for now the random forest has offred the best results in terms of accuracy, sensitivity and specificity. As the model uses over 20 variables, it is considered that it has a hight level of complexity. For this reason, a new model is proposed, one that uses the first 10 variables that resulted to be the most important at predicting the variable of interest suing the Random Forest algortithm. This information can be retrieved from the plot below.
 
 ```{r}
-varimp_rf <- varImp(model_rf)
-varimp_rf
-plot(varimp_rf, main = "Variable Importance with SVM")
+plot(varimp_rf, main = "Variable Importance with Random Forest")
+
+```
+ A new data base has been created in which information has been retained from the 1o most important attributes, and has been stored in the variable 'bands.rf'.
+
+```{r}
+
+
 
 bands.rf <- bands1[, which(
     names(bands1) %in% c(
@@ -766,18 +797,13 @@ bands.rf <- bands1[, which(
   )]
 ```
 
-- here we plot the variables with the most important according to Random Forest
--be useful for further analysis
-- we will compute simpler models 
+Next, a new model has been build using the newly created data set. The model uses the Random Forest algorithm. The steps related to the data partion into a train and test set have been applied here as well. For the train control, the previous option have been 
 
 ```{r}
 # Random forest with only important variable
 
 integ_mod_1 <- data_integrity_model(data = bands.rf, model_name = "randomForest")
 integ_mod_1$data_ok
-
-
-
 
 # Any errors ?
 integ_mod_1
