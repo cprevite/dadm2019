@@ -412,6 +412,11 @@ bands1%>%
   explore_all(target = band_type)
 ```
 
+Some interesting results comes from these graphs. For example, in the graph for **press**, there is a variation depending on the class of the observations: high and low values for **press** shows a prevalence of NOBAND and for intermediate value the prevalence is on the class BAND. This variable could be a serious candidate to predict the new observations.
+
+The variable **cylinder_no** is also one important variable. These graph show that some of the cylinders have serious problem, specially cylinder from the family A: all the observations from this cylinder are defectuous. It is also the case for family V, but in a smaller measure, in the sense that these cylinder are pretty rare. Cylinder X is the most susceptible to be defectuous but it is also the most common in the dataset.
+
+The variable **ink_type** could be also determinant in the processus as when the value is **UNCOATED** there is a high probability that the product would comes out as defectuous.
 
 
 
@@ -720,6 +725,7 @@ model_cart <- rpart(band_type ~., data = trainData, method = "class")
 model_cart
 summary(model_cart)
 
+
 cart.pred<-predict(model_cart, testData, type="class")
 cart.pred
 
@@ -729,16 +735,11 @@ par(pty = "s")
 with(model_cart, plot(cptable[, 3], xlab = "Tree Number", ylab = "Resubstitution Error (R)", 
     type = "b"))
 
+
 # Plot the trees
 rpart.plot(model_cart, box.palette = "RdBu", nn = FALSE)
 
 printcp(model_cart)
-
-
-#pruning
-cart_prune <- prune(model_cart, cp = 0.01)
-
-
 
 
 table(true=testData$band_type, pred = cart.pred)
@@ -752,7 +753,11 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 ```
 
-
+- not the best model in term of accuracy
+- but easy to understand and to show to client
+- on the right hand side there are some really good predictions with a lot of observations in this categorie (see percentage)
+- also success to predict a defectuous product with 100% of propbability (the 4th categorie) 
+- cylinder_no really important as it it the first split
 
 
 ```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
