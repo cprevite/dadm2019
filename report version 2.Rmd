@@ -3,12 +3,8 @@ title: 'Report: Data Analytics for Decision Making'
 author: "Claudio Previte and Ana -Maria Casian"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
-  html_document:
-    toc: TRUE
-    toc_float:
-      collapsed: true
-      smooth_scroll: true
-    fig_caption: yes
+  rmdformats::readthedown:
+    highlight: tango
     code_folding: hide 
 ---
 
@@ -46,64 +42,21 @@ library(DMwR)
 
 # Introduction
 
-Data science is gaining more ground in this day and age and decision making based on machine learning algorithms is a big part of it. It intends to assist the user in taking fast and smart decision in an era where time management stands as a competitive advantage and minimizing risks, monetary or reputational, are the pinnacle for the success. Would a machine learning algorithm be able to predict which product is more likely to have a defect? What are the factors that are contributing to having a defect product?  In this report we are investigating the questions here above as we will try to solve the problem of a printing company that is facing issues with the quality of their products. The paper is built in two parts. The first one is an introduction to the background of the topic, an overview of the data sources and of the data manipulation. The second part consists of the analysis of the data, the statistical models used and the final discussion. The report will further on be presented as a client report.
-
-- purpose of the course
-- the benefit of Machine Learning in general
-
-
+Data science is gaining more ground in this day and age and decision making based on machine learning algorithms is a big part of it. It intends to assist the user in taking fast and smart decision in an era where time management stands as a competitive advantage and minimizing risks, monetary or reputational, are the pinnacle for the success. Would a machine learning algorithm be able to predict which product is more likely to have a defect? What are the factors that are contributing to having a defect product?  In this report we are investigating the questions here above as we will try to solve the problem of a printing company that is facing issues with the quality of their products. The paper is built in two parts. The first one is an introduction to the background of study case, an overview of the data sources, data cleaning and of the data manipulation. The second part consists of the analysis of the data, the statistical models used and the final discussion. 
 
 ## Case description
 
-- describe the problem
-- benefit of Machine Learning in this special case
+Quality issues related to the final products have been detected within the printing company X.  During the print run process, grooves are sometimes formed in the cylinder, which leads to a product with defects, that cannot be provided to the customer. Moreover, when this type of quality related problem is detected, the run is suspended and the cylinder has to be removed and fixed before using it again in production. This event  disrupts the manufacturing process thus raising the risk of delaying the delivery date of the costumer order, but also translates in the fact that the efficiency of the whole operation is slowed down by turning off production, removing the cylinder and replacing it. These factors in turn decrease profits, as the machine is not producing as many final products as it should be and the employees are payed for idle time. Moreover, the costs increase as repairing costs occur.
 
-
-Quality issues related to the final products have been detected within the printing company.  During the print run process, grooves are sometimes formed in the cylinder, which leads to a product with defects, that cannot be provided to the customer. Moreover, when this type of quality related problem is detected, the run is suspended and the cylinder has to be removed and fixed before using it again in production. This event  disrupts the manufacturing process thus raising the risk of delaying the delivery date of the costumer order, but also translates in the fact that the efficiency of the whole operation is slowed down by turning off production, removing the cylinder and replacing it. These factors in turn decrease profits, as the machine is not producing as many final products as it should be and the employees are payed for idle time. Moreover, the costs increase as repair costs occur.
-
-Given the situation described again, the company has decided to investigate why the defects are generated during the runs. For this, the firm has gather data on 512 observations. The attributes that describe these data points are mounting 40, out of which 20 attributes are numeric and 20 are nominal.The variable of interest is represented by the class band type, which in turn is formed by 312 instances of "no band" and 200 instances of "band".
-
-
-```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
-
-knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes1.PNG")
-
-```
-
-```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
-
-knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes2.PNG")
-
-```
-
-## Analysis
-
-- classification model tested
-- which ones are more adapted to the problem
-
-## Results
-
-- show results, ac-curacies
-- recommendations and implementations
-
-
-
-<!-- ## Source of data -->
-
-<!-- - where the data comes from -->
-<!-- - quick description of the data -->
-
-
-<!-- # Data processing -->
-
-<!-- - explain the purpose of data cleaning -->
-<!-- - why it is so important in data analytic -->
+Given the situation described again, the company has decided to investigate why the defects are generated during the runs. For this, the firm has gather data on 540 observations. The attributes that describe these data points are 40 in total, out of which 24 attributes are numeric and 16 are nominal.The variable of interest is represented by the class 'band type', which in turn is formed by 312 instances of "no band" and 200 instances of "band". 
 
 
 ## Loading data
 
 
-The data has  been provided in a csv format. As stated before, the file contrains 512 observations. The imported file has been saved in a variable named "bands". The next part focuses on data description, in order to gather and understand as much insights about the variables as possible. This is a very important step before plunging into  the model creation, as it allows the user to familiarize itself with the data set, 
+The data has  been provided in a csv format. As stated before, the table contrains 540 observations. The imported file has been saved in a variable named "bands". The next part focuses on data description, in order to gather and understand as much insights about the variables as possible. This is a very important step before plunging into  the model creation, as it allows the user to familiarize itself with the data set, and thus be able to propose the appropriate models and also to make judgment calls on the results of the models.
+
+
 ```{r}
 bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 ```
@@ -111,25 +64,25 @@ bands <- read.csv2(file = here('bands3.csv'), sep = ';',na.strings = "?")
 
 ## Data visualization
 
-The first task to analyze a dataset is to inspect all the variables and their values. In order to do that, the 'str' was applied and the results are showed here below.
+The first task that has been undertaken was to inspect all the variables and their values. In order to achieve that, the 'str' function was applied and the results are showed here below.
 
-```{r str, echo=FALSE, fig.cap= 'Figure 1', fig.align='center'}
+```{r str, echo=FALSE}
 str(bands)
 
 ```
 
-It can be noticed that during import, the system classified some numeric variables as factors. In this respect, a transformation  will be performed in order to correct the miss-classification. Furthermore, the data are not recorded in a consistent way for all the observations: part of inputs  are in upper cases and some are in lower cases. This can occur when  different people are in charge to record the data or it could be related to the different practices among  the locations from where the data comes from. This problem can lead to a bad data perception, so it has been decided to transform all categorical data to upper cases. 
+It can be noticed that during import, the system classified some numeric variables as factors. In this respect, a transformation  will be performed in order to correct the miss-classification. Furthermore, the data are not recorded in a consistent way for all the observations: part of inputs  are in upper cases and some are in lower cases. This can occur when  different people are in charge to record the data or it could be related to the different practices along  the locations from where the data comes from. This problem can lead to a bad data perception, so it has been decided to transform all categorical data to upper cases. 
 
-In addition. it has been observed that some nominal variables are characterized by  a high number of levels, which means that they will not be really useful for a potential classification task. At this stage, no transformation will be performed regarding this matter, but the subject will be rediscssed further in the report.
+In addition. it has been observed that some nominal variables are characterized by  a high number of levels, which means that they will not be really useful for a potential classification task. At this stage, no transformation will be performed regarding this matter, but the subject will be re-discussed further in the report.
 
 At the same time, variables with only one level don't bring any information for the classification, so they will be removed from the dataset. 
 
-It has already become clear at this stage that this dataset needs to be cleaned before analyzing it.
+It has already become clear at this stage that this dataset needs to be cleaned before moving into the next stage: analysis.
 
 
 ### Standardization of the dataset
 
-The first transformation is related to the misclassification mentioned above (numeric variables classified as factors) and the transformation of the categorical variables to uppercase, so that the data is consistent.
+The first transformation is related to the miss-classification mentioned above (numeric variables classified as factors) and the transformation of the categorical variables to uppercase, so that the data is consistent.
 
 ```{r standardization, message=FALSE, warning=FALSE, include=FALSE}
 
@@ -147,56 +100,53 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 ```
 
-Here below is an overview of the dataset.
+Here below is an overview of the dataset. The first table shows a summary of the data base, and the second table alows the user to explore the whole table. 
 
 
-```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2: Datatable', fig.align='center'}
+```{r summary_kable, echo=FALSE, message=FALSE, warning=FALSE}
 
 bands %>% 
   introduce() %>%
   t()%>%
   kable() %>%
-  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "left")%>%
   footnote(symbol = strwrap("Sort description of the data"))
-
-kable(bands, 'html') %>%
-  kable_styling(bootstrap_options = c("striped", "hover")) %>%
-   scroll_box(width = "100%", height = "400px")
-
 
 
 ```
+
+```{r datatable, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 2b: Datatable', fig.align='center'}
+kable(bands, 'html') %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+   scroll_box(width = "100%", height = "400px")
+```
+
+
 
 ## Missing values
 
 The next step is having a closer look at the missing variables. First the 'plot_intro'  and 'plot_na' functions were used to have a global view of the status of the variables.
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 3',fig.align='center'}
-# bands %>% 
-#   introduce() %>%
-#   t()%>%
-#   kable() %>%
-#   kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")
-
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 1',fig.align='center', fig.height=c(3), fig.width=c(10)}
 plot_intro(bands)
 
 ```
 
-It can be observed  from Figure 3, that 4.6 % of the data is missing and the complete rows(i.e. an observation containing a value for all the variables)  represents only 51 % of the total observations.
+It can be observed  from Figure 1, that 4.6 % of the data is missing and the complete rows(i.e. an observation containing a value for all the variables)  represents only 51 % of the total observations.
 
-```{r percentage na, fig.cap= 'Figure 4: Prevalence of NAs', fig.align='center'}
+```{r percentage na, fig.cap= 'Figure 2: Prevalence of NAs', fig.align='center', fig.height=c(4), fig.width=c(10)}
 
 x<-inspect_na(bands)
 show_plot(x, col_palette=2)
 ```
-Figure 4 shows that all the 'NAs' of the bands dataset come from a total of  28 variables, with a special mention for the **location** variables which counts 156 missing values (almost 30 % percent of the observations are missing). Then, a total of  10 variables have the same amount of missing values (an average of 57) that account for 10% of the observations in each attribute. The repeating patterns drives to a further analysis of the missing values, which was performed in the fallowing part.
+Figure 2 shows that all the 'NAs' of the bands dataset come from a total of  28 variables, with a special mention for the **location** variable, which counts 156 missing values (almost 30 % percent of the observations are missing). Furthermore, a total of 10 variables have the same amount of missing values (an average of 57) that account for 10% of the observations in each attribute. The repeating patterns drives to a further analysis of the missing values, which was performed in the fallowing part.
 
 ### Structure of the missing values
 
 As stated before, to investigate the findings mentioned above related to the identical percentage of missing values, another  plot  was proposed to have a better look at the distribution of missing values. Having said that, the  graph below represents the missing values per variable per row. 
 
-```{r structure of NAs, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 5: Missing values in rows', fig.align='center'}
+```{r structure of NAs, echo=FALSE, message=FALSE, warning=FALSE, fig.cap= 'Figure 3: Missing values in rows', fig.align='center', , fig.height=c(4), fig.width=c(7)}
 
 
 row.plot <- bands %>%
@@ -215,11 +165,11 @@ row.plot <- bands %>%
 row.plot
 ```
 
-Figure 5 is confirming the intuition previously stated. The reparation of missing values seems to be concentrated in the very last observations for several variables. This indicates that chunks of consecutive values are missing. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, they decided  not to record these specific variables anymore. 
+Figure 3 is confirming the previously stated intuition. The reparation of missing values seems to be concentrated in the very last observations for several variables. This indicates that chunks of consecutive values are missing. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, the company decided  not to record these specific variables anymore. (*Note. In a real case scenario, the anaysts would have the possibility to ask more information about this subject).
 
-For a total of 13 variables, information is missing starting the 486th observation, which means that information is lost on the respective variables. This raises the question of weather it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows.
+For a total of 13 variables, information is missing starting the 486th observation, which means that data is lost on the respective variables. This raises the question of weather it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows.
 
-Keeping them implies having to replace the missing values for 13 variables by an imputation method (knn, mean, median...). Regardless of the method that is chosen for replacing the absent values, this assumes that 54 consecutive observation will share the same value , thus having 10% of the variable sharing the same savlue. It is strongly believed that this is going to biased the results. Based on this point, it has been decided to delete the last 54 consecutive observations of the dataset, which results in having a  dataset with 485 observations.
+At the same time, keeping them implies having to replace the missing values by an imputation method (knn, mean, median...). Regardless of the method that is chosen for replacing the absent values, this assumes that 54 consecutive observations will share the same value , thus having 10% of the values will be identical. It is strongly believed that this is going to biased the results. Based on this point, it has been decided to delete the last 54 consecutive observations of the dataset, which results in having a  dataset with 485 observations.
 
 ```{r delete last obs, message=FALSE, warning=FALSE}
 #Delete the last rows that have consecutive missing data
@@ -227,24 +177,7 @@ bands1 <- bands[-c(486:540),]
 ```
 
 
-At this point, a test has been carried out to verify the 'NAs' state.
-
-```{r percentage na 2, fig.cap= 'Figure 4: Prevalence of NAs'}
-
-x1<-inspect_na(bands1)
-show_plot(x1, col_palette=2)
-
-bands1 %>%
-  introduce() %>%
-  t() %>%
-  kable() %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
-    full_width = F,
-    position = "center") 
-```
-
-It can be observed that the variable **location** is the only one to still have an important ratio of missing values (more than 20%). Replacing all these values with an imputation method doesn't seem to be the best option, as the proportion of missing is too high out of the total observations. An alternative has been  decided:  to set these NAs as **UNDEFINED**, this adding a 7th level to the variable. 
+The focus is now carried out to the variable **location**, that remains the only variable to still have an important ratio of missing values. Replacing all these values with an imputation method doesn't seem to be the best option, as the proportion of missing is too high compared to the total observations. An alternative has been  decided:  to set these NAs as **UNDEFINED**, this adding a 7th level to the variable. Moreover, location could represent an important factor in the analysis, in the way that problems can be linked to certain locations, thus eliminating it from the models could translate to a loss of information. 
 
 
 ```{r location}
@@ -258,21 +191,22 @@ bands1$location = as.factor(bands1$location)
 
 ### Imputation of the missing values
 
-The amount of missing values for the rest of the variables is perceived as acceptable and these variables will be imputed by a **k-Nearest-Neighbors** (kNN) method. KNN is an algorithm that is useful for matching a point with its closest k neighbors in a multi-dimensional space. It can be used for data that are continuous, discrete, ordinal and categorical which makes it particularly useful for dealing with all kind of missing data. We have to set a value for **k** and decide to go for the simple approach to set k = sqrt(n) = 22. 
+The amount of missing values for the rest of the variables is perceived as acceptable and these variables will be imputed by a **k-Nearest-Neighbors** (kNN) method. KNN is an algorithm that is useful for matching a point with its closest k neighbors in a multi-dimensional space. It can be used for data that are continuous, discrete, ordinal and categorical which makes it particularly useful for dealing with all kind of missing data. We have to set a value for **k** and decide to go for the simple approach to set $$k = \sqrt{nrows(dataset)} ={\sqrt{485}} = 22$$
 
-```{r}
+```{r, include=FALSE}
 # replace missing values with knn 
 
-
 n <- nrow(bands1)
-n
+
 k <- sqrt(n)
-k
+
 
 bands1 <- knnImputation(bands1, k=22)
 
 
 ```
+
+
 
 A last check if there are still missing values is performed here below by using the 'anyNA' command, to assure that all the observations have a value.
 ```{r, include = FALSE}
@@ -287,11 +221,11 @@ anyNA(bands1)
 ### First elimination
 
 
-As the database is complete and has no more missing values, the variable are examined again, only that this time from a different  perspective. In fact, there are a lot of attributes that are useless to define if the product presents defects or not. First of all,  variables with only 1 level of factor,such as  **ink_color** and **cylinder_division** can be removed as they won't have any effect on the response variable. Moreover, the variable **job_number** has too many levels (more than 200) and no link with  the response variable. The variables **customer** and **date** can also be deleted as it have no possibilities to affect the class of 'band_type'. 
+As the database is complete and has no more missing values, the variable are examined again, only that this time from a different  perspective: variable importance.
 
-In the case of the variable **cylinder_no**,  further analysis is require. The number of levels indicated that this variable is better to be deleted, because it has almost the same number of levels (429) as observations (485) and it doesn't make sense to keep it to define the class 'band_type'. Nevertheless, the cylinder is the most important part of the printing process, as when a problem of banding is detected in the process, the cylinder has to be removed and repaired. So that means that it has a direct effect on the response variable. Having a closer look at the variable, it has been noticed that the values for this variable were fallowing a pattern :  "LETTER NUMBER NUMBER NUMBER". Thus, the letter could correspond to a batch number or type of cylinder or the location where it has been produced, which actually could explain the variable of interest. It has been decided to keep only the letter out of the whole string, for each value of this variable. Doing so the number of levels drops to 17, which is acceptable in terms of the analysis. 
+There are a lot of attributes that are useless to define if the product presents defects or not. First of all,  variables with only 1 level of factor,such as  **ink_color** and **cylinder_division** can be removed as they won't have any effect on the response variable. Moreover, the variable **job_number** has too many levels (more than 200) and no link with  the response variable. The variables **customer** and **date** can also be deleted as it have no possibilities to affect the class of **band_type**. 
 
-This first attempt to reduce the number of attribute results in a database with 35 variables, which seems still high for a good analysis. Another method based on statistical features will be used in order to select the most important attributes to keep for the analysis. 
+In the case of the variable **cylinder_no**,  further analysis is required. The hight number of levels indicate that this variable is better to be deleted, because it has almost the same number of levels (429) as observations (485) and it doesn't make sense to keep it to define the class 'band_type'. Nevertheless, the cylinder is the most important part of the printing process, as when a problem of banding is detected in the process, the cylinder has to be removed and repaired. This means that it has a direct effect on the response variable. Having a closer look at the variable, it has been noticed that the values for this variable were fallowing a pattern :  "LETTER NUMBER NUMBER NUMBER". Thus, the letter could correspond to a batch number, cylinder type  or even the location where it has been produced, which actually could explain the variable of interest. It has been decided to keep only the letter out of the whole string, for each value of this variable. Doing so, the number of levels drops to 17, which is acceptable in terms of the analysis. (*Note. In a real case scenario, the anaysts would have had the possibility to ask more information about this subject).
 
 ```{r delete var}
 # Delete variables that are not needed
@@ -310,6 +244,7 @@ bands1$cylinder_no <- as.factor(substr(bands1$cylinder_no, 0, 1))
 ```
 
 
+This first attempt to reduce the number of attribute results in a database containing 35 variables, which seems still high if the company is looking to identify the cause of the defective product. To investigate even further, a method based on statistical features will be used in order to select the most important attributes to keep for the analysis. 
 
 
 ### Boruta test - Second elimination
@@ -326,18 +261,56 @@ Boruta then trains a Random Forest to predict T based on P and P’.
 
 The algorithm then compares the variable importance scores for each variable in P with it’s “shadow” in P’. If the distribution of variable importance is significantly greater in P than it is in P’, then the Boruta algorithm considers that variable significant."
 
-
+This next part of the analysis takes a closer look at the results after applying the algorithm to the dataset.
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
 
 boruta_test <- Boruta(band_type ~ ., data = bands1, doTrace = 2)
+
+
+```
+
+
+```{r plot boruta, echo=FALSE, fig.align='center', fig.cap= 'Figure 4: Importance of the variables', fig.height=c(5), fig.width=c(10)}
+
+plot(boruta_test, xlab = "", xaxt = "n")
+lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
+  boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
+names(lz) <- colnames(boruta_test$ImpHistory)
+Labels <- sort(sapply(lz, median))
+axis(
+  side = 1,
+  las = 2,
+  labels = names(Labels),
+  at = 1:ncol(boruta_test$ImpHistory),
+  cex.axis = 0.7
+)
+```
+
+
+```{r datatable boruta, include=FALSE}
 table_result <- as.data.frame(boruta_test$finalDecision)
 setDT(table_result, keep.rownames = TRUE)[]
 colnames(table_result) <- c("Variable", "Decision")
 
+```
+
+```{r echo=FALSE, fig.align='center', fig.cap= 'Figure 5: Importance of the variables'}
+datatable(table_result,
+  caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;",
+                                        "Note. ", htmltools::em("Please select the variables of interest")),
+      filter = list(position = 'top',
+                    clear = TRUE,
+                    plain = FALSE))
+```
 
 
 
+The results of the Boruta algorithm are shown in Figure 4 where the variables are plotted against their importance value and in Figure 5 where a table was created in which variables are labeled as 'Confirmed', 'Tentative' and 'Rejected' .
+The decision is to keep the variables that belong to the first two categories.
+
+
+```{r message=FALSE, warning=FALSE, include = FALSE}
 variables_to_keep <- table_result %>%
   filter(table_result$Decision == 'Confirmed' |
            table_result$Decision == 'Tentative')
@@ -356,122 +329,77 @@ bands1 <-
   bands1[, which(
     names(bands1) %in% names_variables_to_keep
   )]
-
 ```
 
-```{r kable boruta, echo=FALSE, fig.align='center', fig.cap= 'Figure 5: Importance of the variables'}
-kable(table_result) %>%
-  kable_styling(
-    bootstrap_options = c("striped", "hover", "condensed", "bordered"),
-    full_width = F,
-    position = "center"
-  ) %>%
-  footnote(symbol = strwrap("Results of the boruta test")) %>%
-  scroll_box(width = "500px", height = "300px")
-```
-
-
-```{r plot boruta, echo=FALSE, fig.align='center', fig.cap= 'Figure 6: Importance of the variables', fig.height=c(5), fig.width=c(10)}
-plot(boruta_test, xlab = "", xaxt = "n")
-lz <- lapply(1:ncol(boruta_test$ImpHistory), function(i)
-  boruta_test$ImpHistory[is.finite(boruta_test$ImpHistory[, i]), i])
-names(lz) <- colnames(boruta_test$ImpHistory)
-Labels <- sort(sapply(lz, median))
-axis(
-  side = 1,
-  las = 2,
-  labels = names(Labels),
-  at = 1:ncol(boruta_test$ImpHistory),
-  cex.axis = 0.7
-)
-```
-§
-The results of the Boruta algorithm are shown in Figure 5 and 6, with the importance of each variables and the final decision of either to keep the variable or not. The first thing that can be observed is that there are a lot of important variables but a certain number of them show a higher importance than others, especially the right hand side of the elbow. Moreover, within the top 12 most important variables, only one (**grain_screened**) is impacted by the problem of the last 54 observations presenting only missing values. Running the Boruta algorithm on the database with the 485 observations makes sense, as the objective is to spot which variables are the most important and it is better to do it on a database which reflects the most the reality, limiting the missing values. 
-
-The decision is to keep the 11 most important variables according to Boruta, excluding the variables having consecutive missing values in the last observations, which is **grain_screened**. At this point, It seems acceptable to do the analysis with the 540 observations of the database, as the ones selected are not impacted by these consecutive missing values. So the database under analysis is the one with 540 observations and the 10 most important variables: **press_type, press, press_speed, ink_type, viscosity, cylinder_no, hardener, cylinder_size, roller_durometer, cylinder_type, band_type** and the output variable **band_type**.
-
+A first look at the database after all the modifications that have been done untill now.
 
 ```{r}
 
-bands2 <- bands[, which(
-    names(bands) %in% c(
-      "press_type", 
-      "press", 
-      "press_speed", 
-      'ink_type', 
-      'viscosity',
-      'cylinder_no',
-      'hardener',
-      'cylinder_size',
-      'roller_durometer',
-      'cylinder_type',
-      'band_type',
-      "humidity"
-    )
-  )]
-
-bands2$cylinder_no <- as.factor(substr(bands2$cylinder_no, 0, 1))
-
-bands2 <-  knnImputation(bands2, k=22)
-
+datatable(bands1,
+  caption = htmltools::tags$caption(style = "caption-side: top; text-align: left;",
+                                        "Note. ", htmltools::em("Please select the variables of interest")),
+      filter = list(position = 'top',
+                    clear = TRUE,
+                    plain = FALSE))
 
 ```
 
 
-In order to prevent a bad value in specificity in the further models, it has been decided that the number of each response variable need to be the same. This way, more weight is given to negative class **BAND**.
 
-```{r}
-
-table(bands2$band_type)
-
-# Dataset of only 1s
-bands.bands = bands2[bands2$band_type == "BAND",]
-
-# Dataset with only 0s
-bands.nobands = bands2[bands2$band_type == "NOBAND",]
-
-# Preparing random samples for training and test set allocation
-bands.nobands.sample <- bands.nobands[sample(x=1:nrow(bands.nobands),size = nrow(bands.bands)),]
-
-# Combine the above 2 datasets
-bands.sample <- rbind(bands.bands, bands.nobands.sample)
-
-table(bands.sample$band_type)
-
-```
 
 ## Outliers
 
-We have generated the boxplot and the summary for all the variables and examined the outliers. Given that the outliers were not showing any significant values, we have decided that there are no error measurements and neither error entries in the data.
+After a close verification of the boxplots and the summary for each variable, it has been concluded that there are no error measurements and neither error entries in the data. Please refer to the Annexe1,to see outputs of the analysis.
 
-```{r, message=FALSE, warning=FALSE, include= FALSE}
+```{r, message=FALSE, warning=FALSE, include=FALSE}
 
-numeric_column <- names(select_if(bands, is.numeric))
+numeric_column <- names(select_if(bands1, is.numeric))
 
 for (i in numeric_column) {
-  print(summary(bands[i]))
-  print (boxplot(bands[i])$out)
+summary(bands1[i])
+boxplot(bands1[i])$out
 }
+
+```
+Here below you 
+
+```{r}
+
+quanti<-1:18
+mat<-matrix(0, length(quanti), 7)
+colnames(mat)<-c("Min.", "1st Qu.", "Median", "Mean", "Sd", "3rd Qu.", "Max.")
+rownames(mat)<-names(select_if(bands1, is.numeric))
+mat[,1]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, min)
+mat[,2]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, quantile, 0.25)
+mat[,3]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, median)
+mat[,4]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, mean)
+mat[,5]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, sd)
+mat[,6]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, quantile, 0.75)
+mat[,7]<-apply(bands1[,names(select_if(bands1, is.numeric))], 2, max)
+
+round(mat,1)%>%
+kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "center")%>%
+  footnote(symbol = strwrap("Summary of the data"))
+
 
 ```
 
 
 # Exploratory Data Analysis
 
-- find an order for the different plot that make sense
-- do not put a plot if it is not useful
-- get insights
+Th Variables have been plotted against the variables of interest, 'band_type'.
 
 ```{r fig.height= 12}
 
-plot_boxplot(bands.sample, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
+plot_boxplot(bands1, by= 'band_type',  ncol = 2, title = "Side-by-side boxplots")
 
 ```
 
 ```{r, fig.width = 10, fig.height = 20}
 
 
-bands.sample%>%
+bands1%>%
   explore_all(target = band_type)
 ```
 
@@ -514,9 +442,9 @@ table(testData$band_type)
 
 ## Random Forest
 
-
+In order to prevent a bad value in specificity in the further models, it has been decided that the number of each response variable need to be the same. This way, more weight is given to negative class **BAND**.
 ```{r}
-integ_mod_1 <- data_integrity_model(data = bands.sample, model_name = "randomForest")
+integ_mod_1 <- data_integrity_model(data = bands1, model_name = "randomForest")
 integ_mod_1$data_ok
 
 
@@ -781,6 +709,19 @@ predict_cart <- predict(model_cart, newdata = testData)
 #   geom_point(aes(color = band_type))
 ```
 
+
+
+```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
+
+knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes1.PNG")
+
+```
+
+```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
+
+knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes2.PNG")
+
+```
 
 
 
