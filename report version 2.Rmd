@@ -410,6 +410,11 @@ bands1%>%
   explore_all(target = band_type)
 ```
 
+Some interesting results comes from these graphs. For example, in the graph for **press**, there is a variation depending on the class of the observations: high and low values for **press** shows a prevalence of NOBAND and for intermediate value the prevalence is on the class BAND. This variable could be a serious candidate to predict the new observations.
+
+The variable **cylinder_no** is also one important variable. These graph show that some of the cylinders have serious problem, specially cylinder from the family A: all the observations from this cylinder are defectuous. It is also the case for family V, but in a smaller measure, in the sense that these cylinder are pretty rare. Cylinder X is the most susceptible to be defectuous but it is also the most common in the dataset.
+
+The variable **ink_type** could be also determinant in the processus as when the value is **UNCOATED** there is a high probability that the product would comes out as defectuous.
 
 
 
