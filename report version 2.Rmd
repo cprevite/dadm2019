@@ -288,12 +288,15 @@ axis(
 ```
 
 
+
+
 ```{r datatable boruta, include=FALSE}
 table_result <- as.data.frame(boruta_test$finalDecision)
 setDT(table_result, keep.rownames = TRUE)[]
 colnames(table_result) <- c("Variable", "Decision")
 
 ```
+
 
 ```{r echo=FALSE, fig.align='center', fig.cap= 'Figure 5: Importance of the variables'}
 datatable(table_result,
@@ -310,10 +313,12 @@ The results of the Boruta algorithm are shown in Figure 4 where the variables ar
 The decision is to keep the variables that belong to the first two categories.
 
 
+
 ```{r message=FALSE, warning=FALSE, include = FALSE}
 variables_to_keep <- table_result %>%
   filter(table_result$Decision == 'Confirmed' |
            table_result$Decision == 'Tentative')
+
 
 
 band_typeVar <- data.frame('band_type', 'Confirmed')
@@ -356,8 +361,10 @@ After a close verification of the boxplots and the summary for each variable, it
 numeric_column <- names(select_if(bands1, is.numeric))
 
 for (i in numeric_column) {
-summary(bands1[i])
-boxplot(bands1[i])$out
+
+  print(summary(bands1[i]))
+  print (boxplot(bands1[i])$out)
+
 }
 
 ```
@@ -410,16 +417,13 @@ bands1%>%
 # Fitting the models
 
 
-```{r}
-#normalize data
-# doesn't change the results so we will not keep the modifications
-# b.process <- preProcess(bands, method= 'range')
-# b <- predict(b.process, newdata = bands)
-```
-
-
 ## test and train sets
-```{r}
+
+In order to construct algorithm that can learn from themselves and make predictions on new data, the database has to be split in two part: a test set and a train set. The model is first fitted on the train set and the predictions would be done on the test set.
+
+The general method to split the whole dataset is to extract 75% of the dataset, which will be put in the train set, and the remaining 25% will be put in the test set. The **caret** package has a very useful function (**createDataPartition**) to do this task and allows to keep the same repartition of each classes in the two sets. 
+
+```{r message=FALSE, warning=FALSE}
 
 
 # Create the training and test datasets
@@ -442,7 +446,11 @@ table(testData$band_type)
 
 ## Random Forest
 
-In order to prevent a bad value in specificity in the further models, it has been decided that the number of each response variable need to be the same. This way, more weight is given to negative class **BAND**.
+
+
+The Random Forest algorithm performs training on multiple decision trees trained on slightly different subsets of data. The **caret** package has some useful option that could be integrated on the **trControl** which allows to control the computational nuances of the train function. For this Random Forest model we set a **repeatedcv** option for the method of resampling  Here the training dataset will be divided randomly into 10 parts and then using each of the 10 parts as testing dataset for the model trained on the other 9 datasets. This options give some robust models and that is why the method will be implemented also for the other models. An other option that will be often used is the **sampling = 'down'**, this will correct the problem of unbalanced classes in the dataset. This is essential in this case, as the scope is to predict with the most higher accuracy the observations classified as **BAND**. The package gives the possibility to interpret the variables of the dataset that are perceived as important for the selected model. This option will be useful when some simpler models will be tested, because it can plot only the most important variables considered as important for the model.
+
+
 ```{r}
 integ_mod_1 <- data_integrity_model(data = bands1, model_name = "randomForest")
 integ_mod_1$data_ok
@@ -461,21 +469,54 @@ model_rf <- caret::train(band_type ~ .,
 weather.pred.1 <- predict(model_rf, testData)
 confusionMatrix(weather.pred.1, testData$band_type, positive = 'NOBAND')
 
+varimp_rf <- varImp(model_rf)
+varimp_rf
+plot(varimp_rf, main = "Variable Importance with SVM")
+
+
+```
+Interpretation
+- first model so no points of comparison
+- accuracy of 77% 
+- better specificity than sensitivity -> predict better Band than Noband(?)
+- results seems acceptable, waitng to compare with others models
+
+
+```{r}
+varimp_rf <- varImp(model_rf)
+varimp_rf
+plot(varimp_rf, main = "Variable Importance with SVM")
+
+bands.rf <- bands1[, which(
+    names(bands1) %in% c(
+      "blade_pressure", 
+      "press", 
+      "press_speed", 
+      'ink_pct', 
+      'viscosity',
+      'ink_temperature',
+      'proof_cut',
+      'band_type',
+      "humidity",
+      'solvent_pct',
+      'varnish_pct'
+    )
+  )]
 ```
 
+- here we plot the variables with the most important according to Random Forest
+-be useful for further analysis
+- we will compute simpler models 
 
 ## Nearest Neighbour Classification 
 
-we still have to fit this model
+- repeatedcv in trainControl, see RF ( Ana we don't need to put the description of the options each time I think)
+- sampling = down
 
-
-- explain how it works
-- fit the model
-- results
 
 ```{r}
 
-trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3, sampling = 'down')
 set.seed(3333)
 knn_fit <- train(band_type ~., data = trainData, method = "knn",
  trControl=trctrl,
@@ -489,20 +530,24 @@ test_pred_knn <- predict(knn_fit, newdata = testData)
 confusionMatrix(test_pred_knn, testData$band_type, positive = 'NOBAND')
 ```
 
+interpretation
+- Accuracy was used to select the optimal model using the largest value.
+The final value used for the model was k = 9.
+- accuracy 69% 
+- below the RF 
+- 
 
 
 ## Logistic Regression
 
-- explain how it works
-- fit the model
-- results
+
 
 
 ```{r}
 # logistic regression
 
-fitControl <- trainControl(method = "cv", sampling = 'down')
-
+fitControl <- trainControl(method = "repeatedcv", sampling = 'down', )
+set.seed(9090)
 model_lr <-
   train(band_type ~ .,
         data = trainData,
@@ -604,6 +649,7 @@ print(confusionMatrix(
 
 ```{r neural network model}
 
+set.seed(890)
 model_nnet <- caret::train(band_type ~ ., data = trainData, method = "nnet", preProcess = "range", 
     trace = FALSE, trControl = trainControl(method = "cv", sampling = 'down'))
 
@@ -711,6 +757,7 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 
 
+
 ```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
 
 knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes1.PNG")
@@ -723,6 +770,46 @@ knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in
 
 ```
 
+
+```{r}
+# Random forest with only important variable
+
+integ_mod_1 <- data_integrity_model(data = bands.rf, model_name = "randomForest")
+integ_mod_1$data_ok
+
+
+
+
+# Any errors ?
+integ_mod_1
+
+
+# Create the training and test datasets
+set.seed(100)
+
+# Step 1: Get row numbers for the training data
+trainRowNumbers <- createDataPartition(bands.rf$band_type, p=0.75, list=FALSE)
+
+# Step 2: Create the training  dataset
+trainData.rf <- bands.rf[trainRowNumbers,]
+
+# Step 3: Create the test dataset
+testData.rf <- bands.rf[-trainRowNumbers,]
+
+# the proportion of the classes (BAND and NOBAND) stay the same in the train and test set (65 and 35% respectively)
+
+set.seed(12345)
+model_rf.imp <- caret::train(band_type ~ .,
+                         data=trainData.rf,
+                         method="rf",
+                         preProcess=NULL,
+                         trControl=trainControl(method="repeatedcv", number=10,
+                                                repeats=10, verboseIter=FALSE, sampling = "down"))
+weather.pred.1 <- predict(model_rf.imp, testData.rf)
+confusionMatrix(weather.pred.1, testData.rf$band_type, positive = 'NOBAND')
+
+
+```
 
 
 
