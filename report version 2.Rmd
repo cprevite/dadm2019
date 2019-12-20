@@ -37,6 +37,8 @@ library(funModeling)
 library(gmodels)
 library(data.table)
 library(DMwR)
+library(rpart)
+library(rpart.plot)
 
 ```
 
@@ -692,18 +694,13 @@ conf1
 
 ```{r}
 
-library(rpart)
-library(rpart.plot)
+
 # Build the model
 set.seed(123)
 model_cart <- rpart(band_type ~., data = trainData, method = "class")  
 model_cart
 summary(model_cart)
 
-# pruning
-par(pty = "s")
-with(model_cart, plot(cptable[, 3], xlab = "Tree Number", ylab = "Resubstitution Error (R)", 
-    type = "b"))
 
 # Plot the trees
 rpart.plot(model_cart, box.palette = "RdBu", nn = FALSE)
@@ -712,9 +709,6 @@ printcp(model_cart)
 
 
 #pruning
-cart_prune <- prune(model_cart, cp = 0.01)
-
-
 
 cart.pred<-predict(model_cart, testData, type="class")
 cart.pred
@@ -730,7 +724,11 @@ predict_cart <- predict(model_cart, newdata = testData)
 
 ```
 
-
+- not the best model in term of accuracy
+- but easy to understand and to show to client
+- on the right hand side there are some really good predictions with a lot of observations in this categorie (see percentage)
+- also success to predict a defectuous product with 100% of propbability (the 4th categorie) 
+- cylinder_no really important as it it the first split
 
 
 
