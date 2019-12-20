@@ -39,6 +39,7 @@ library(data.table)
 library(DMwR)
 library(rpart)
 library(rpart.plot)
+library(gridExtra)
 
 ```
 
@@ -56,7 +57,7 @@ Given the situation described again, the company has decided to investigate why 
 ## Loading data
 
 
-The data has  been provided in a csv format. As stated before, the table contrains 540 observations. The imported file has been saved in a variable named "bands". The next part focuses on data description, in order to gather and understand as much insights about the variables as possible. This is a very important step before plunging into  the model creation, as it allows the user to familiarize itself with the data set, and thus be able to propose the appropriate models and also to make judgment calls on the results of the models.
+The data has  been provided in a csv format. As stated before, the table contains 540 observations. The imported file has been saved in a variable named "bands". The next part focuses on data description, in order to gather and understand as much insights about the variables as possible. This is a very important step before plunging into  the model creation, as it allows the user to familiarize itself with the data set, and thus be able to propose the appropriate models and also to make judgment calls on the results of the models.
 
 
 ```{r}
@@ -102,7 +103,7 @@ bands <- as.data.frame(lapply(bands,function(x)
 
 ```
 
-Here below is an overview of the dataset. The first table shows a summary of the data base, and the second table alows the user to explore the whole table. 
+Here below is an overview of the dataset. The first table shows a summary of the data base, and the second table allows the user to explore the whole table. 
 
 
 ```{r summary_kable, echo=FALSE, message=FALSE, warning=FALSE}
@@ -167,7 +168,7 @@ row.plot <- bands %>%
 row.plot
 ```
 
-Figure 3 is confirming the previously stated intuition. The reparation of missing values seems to be concentrated in the very last observations for several variables. This indicates that chunks of consecutive values are missing. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, the company decided  not to record these specific variables anymore. (*Note. In a real case scenario, the anaysts would have the possibility to ask more information about this subject).
+Figure 3 is confirming the previously stated intuition. The reparation of missing values seems to be concentrated in the very last observations for several variables. This indicates that chunks of consecutive values are missing. This could be due to a problem in recording the observations, or more simply due to the fact that from a certain point in time, the company decided  not to record these specific variables anymore. (*Note. In a real case scenario, the analysts would have the possibility to ask more information about this subject).
 
 For a total of 13 variables, information is missing starting the 486th observation, which means that data is lost on the respective variables. This raises the question of weather it is useful to keep these observations for the analysis; deleting them would reduce the dataset of 54 rows.
 
@@ -227,7 +228,7 @@ As the database is complete and has no more missing values, the variable are exa
 
 There are a lot of attributes that are useless to define if the product presents defects or not. First of all,  variables with only 1 level of factor,such as  **ink_color** and **cylinder_division** can be removed as they won't have any effect on the response variable. Moreover, the variable **job_number** has too many levels (more than 200) and no link with  the response variable. The variables **customer** and **date** can also be deleted as it have no possibilities to affect the class of **band_type**. 
 
-In the case of the variable **cylinder_no**,  further analysis is required. The hight number of levels indicate that this variable is better to be deleted, because it has almost the same number of levels (429) as observations (485) and it doesn't make sense to keep it to define the class 'band_type'. Nevertheless, the cylinder is the most important part of the printing process, as when a problem of banding is detected in the process, the cylinder has to be removed and repaired. This means that it has a direct effect on the response variable. Having a closer look at the variable, it has been noticed that the values for this variable were fallowing a pattern :  "LETTER NUMBER NUMBER NUMBER". Thus, the letter could correspond to a batch number, cylinder type  or even the location where it has been produced, which actually could explain the variable of interest. It has been decided to keep only the letter out of the whole string, for each value of this variable. Doing so, the number of levels drops to 17, which is acceptable in terms of the analysis. (*Note. In a real case scenario, the anaysts would have had the possibility to ask more information about this subject).
+In the case of the variable **cylinder_no**,  further analysis is required. The high number of levels indicate that this variable is better to be deleted, because it has almost the same number of levels (429) as observations (485) and it doesn't make sense to keep it to define the class 'band_type'. Nevertheless, the cylinder is the most important part of the printing process, as when a problem of banding is detected in the process, the cylinder has to be removed and repaired. This means that it has a direct effect on the response variable. Having a closer look at the variable, it has been noticed that the values for this variable were fallowing a pattern :  "LETTER NUMBER NUMBER NUMBER". Thus, the letter could correspond to a batch number, cylinder type  or even the location where it has been produced, which actually could explain the variable of interest. It has been decided to keep only the letter out of the whole string, for each value of this variable. Doing so, the number of levels drops to 17, which is acceptable in terms of the analysis. (*Note. In a real case scenario, the analysts would have had the possibility to ask more information about this subject).
 
 ```{r delete var}
 # Delete variables that are not needed
@@ -338,7 +339,7 @@ bands1 <-
   )]
 ```
 
-A first look at the database after all the modifications that have been done untill now.
+A first look at the database after all the modifications that have been done until now.
 
 ```{r}
 
@@ -356,7 +357,7 @@ datatable(bands1,
 
 ## Outliers
 
-After a close verification of the boxplots and the summary for each variable, it has been concluded that there are no error measurements and neither error entries in the data. Please refer to the Annexe1, to see the voxplots.
+After a close verification of the box-plots and the summary for each variable, it has been concluded that there are no error measurements and neither error entries in the data. Please refer to the Annex1, to see the boxplots.
 
 ```{r, message=FALSE, warning=FALSE, include=FALSE}
 
@@ -416,7 +417,7 @@ Some interesting results comes from these graphs. For example, in the graph for 
 
 The variable **cylinder_no** is also one important variable. These graph show that some of the cylinders have serious problem, specially cylinder from the family A: all the observations from this cylinder are defectuous. It is also the case for family V, but in a smaller measure, in the sense that these cylinder are pretty rare. Cylinder X is the most susceptible to be defectuous but it is also the most common in the dataset.
 
-The variable **ink_type** could be also determinant in the processus as when the value is **UNCOATED** there is a high probability that the product would comes out as defectuous.
+The variable **ink_type** could be also determinant in the process as when the value is **UNCOATED** there is a high probability that the product would comes out as defectuous.
 
 
 
@@ -431,7 +432,7 @@ In order to construct algorithms that can learn from the data that is provided a
 The general method to split the whole dataset is to extract 75% of the dataset, which will constitute the train set, and the remaining 25% will represent the test set. The **caret** package has a very useful function (**createDataPartition**) to do this task and allows to keep the same repartition of each classes in the two sets. This function has been used throughout all the models.
 
 
-All the models have been created using the 'caret' package. The **trControl** option of the **caret** package,  allows to include  computational nuances of the train function. For this  model a **repeatedcv** option has been chosen as the method of resampling.  This implies that the training dataset will be divided randomly into 10 parts. Each chunck will serve in turns as a test set for the model that has been buid using the other nine datasets (which sereved as a trin set). This **repeatedcv** option leads to robust models and for this reason the method will be also present for the other models. 
+All the models have been created using the 'caret' package. The **trControl** option of the **caret** package,  allows to include  computational nuances of the train function. For this  model a **repeatedcv** option has been chosen as the method of resampling.  This implies that the training dataset will be divided randomly into 10 parts. Each chunk will serve in turns as a test set for the model that has been build using the other nine datasets (which served as a train set). This **repeatedcv** option leads to robust models and for this reason the method will be also present for the other models. 
 
 Other option that will be used in all the models that are presented in this paper is the **sampling = 'down'** option of **trControl**. This feature will correct the problem of unbalanced classes in the dataset. This is an essential aspect as the class **BAND** has fewer instances than the class **NOBANDS**. The scope of the models is to predict with the most higher accuracy the observations classified as **BAND**. 
 
@@ -464,7 +465,7 @@ table(testData$band_type)
 The Random Forest algorithm is an ensemble learning technique. The algorithm builds multiple decision trees that are trained on  different subsets of data of the training set. The predictions are then averaged, in order to create the final output.
 
 
-The Random Forest model gives the possibility to view the variables of the dataset that are perceived as important for the selected model. This information could be used to build new models that are using only the varriables that have been labeled as important, thus reducing the complexity of the model.
+The Random Forest model gives the possibility to view the variables of the dataset that are perceived as important for the selected model. This information could be used to build new models that are using only the variables that have been labeled as important, thus reducing the complexity of the model.
 
 
 ```{r message=FALSE, warning=FALSE, include= FALSE}
@@ -493,7 +494,7 @@ confusion_matrix_RF <- confusionMatrix(prediction_RF, testData$band_type, positi
 confusion_matrix_RF
 ```
 
-The first model gives an accuracy of 77%, with sensitivity reaching 76% and specifity being 79%. This first reasults are encouriging, as the class that interests most is "BAND" and the model is able to predict 34 times correct out of a total of 43 instances. 
+The first model gives an accuracy of 77%, with sensitivity reaching 76% and specificity being 79%. This first results are encouraging, as the class that interests most is "BAND" and the model is able to predict 34 times correct out of a total of 43 instances. 
 
 
 
@@ -501,15 +502,17 @@ Interpretation
 - first model so no points of comparison
 - accuracy of 77% 
 - better specificity than sensitivity -> predict better Band than Noband(?)
-- results seems acceptable, waitng to compare with others models
+- results seems acceptable, waiting to compare with others models
 
 ```{r}
 
 varimp_rf <- varImp(model_rf)
-plot(varimp_rf, main = "Variable Importance with Random Forest")
+plot_var_RF =plot(varimp_rf, main = "Variable Importance with Random Forest")
+plot_var_RF
+
 
 ```
-< br/><br>
+
 
 The plot  lists the variables  in the order of importance. According to the model, the variables 
 - 'blade_pressure',
@@ -529,8 +532,8 @@ are the top ten  attributes that explain the variable of interest.
 
 
 
-## Nearest Neighbour Classification 
-The next model used in the analysis in the Nearest Neighbour Classifier, 
+## Nearest Neighbor Classification 
+The next model used in the analysis in the Nearest Neighbor Classifier, 
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -553,7 +556,7 @@ confusion_matrix_KNN <- confusionMatrix(test_pred_knn, testData$band_type, posit
 confusion_matrix_KNN
 ```
 
-The second  model provided an accuracy of 69%, lower than the one resulted from using the Random Forest algoristh. The sensitivity level and Specificity are 67% and 72% respectively. The two measures have also decresed in contrast with the previous model, but the poucentage for Specificity is still above 70% and given that the company is most interested in predicting well the **BANDS* instances, this model can still be considered satisfying. 
+The second  model provided an accuracy of 69%, lower than the one resulted from using the Random Forest algorithm. The sensitivity level and Specificity are 67% and 72% respectively. The two measures have also decreased in contrast with the previous model, but the percentage for Specificity is still above 70% and given that the company is most interested in predicting well the **BANDS* instances, this model can still be considered satisfying. 
 
 interpretation
 - Accuracy was used to select the optimal model using the largest value.
@@ -566,7 +569,7 @@ The final value used for the model was k = 9.
 ## Logistic Regression
 
 
-The third model that has been considered is the Logistic regression. Logistic regression is binomial regression model widely used in machine learning when the dependent variable is categorical. As in the case of the other models, the model has been buid using caret.
+The third model that has been considered is the Logistic regression. Logistic regression is binomial regression model widely used in machine learning when the dependent variable is categorical. As in the case of the other models, the model has been build using caret.
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # logistic regression
@@ -597,7 +600,7 @@ confusion_matrix_Logistic
 ```
 
 
-In the case of Logistic regression, the an accuracy has a level of 74%. The Sensitivity level and Specificity are 76% and 69% respectively. It is interesting as this model is better at predicting the **NOBANDS** rather thand **BANDS**, as opposed to the two previous models. 
+In the case of Logistic regression, the an accuracy has a level of 74%. The Sensitivity level and Specificity are 76% and 69% respectively. It is interesting as this model is better at predicting the **NOBANDS** rather than **BANDS**, as opposed to the two previous models. 
 
 For the moment this model is the least important as the Specificity is the lowest, and the prior models offered better results for the prediction of this class.
 
@@ -678,7 +681,7 @@ confusion_matrix_SVM2
 
 
 ```
-The secont SVM model offers good percentages in terms of Accuracy, Sensitivity and Specificity. 
+The second SVM model offers good percentages in terms of Accuracy, Sensitivity and Specificity. 
 
 
 ## Neural Network
@@ -705,19 +708,18 @@ results1
 confusion_matrix_NN <-   confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
 confusion_matrix_NN
 ```
-The Neural Network has less good results compared to teh other mdoels. This is not surprising, as normally this type of models works better when the dataset las big amount of datas to learn on, and in our case the data set has a total of 363 instances (75% of the total of 485 data points).
+The Neural Network has less good results compared to the other models. This is not surprising, as normally this type of models works better when the dataset has big amount of data to learn on, and in our case the data set has a total of 363 instances (75% of the total of 485 data points).
 
 ```{r}
 
 varimp_nnet <- varImp(model_nnet)
-varimp_nnet
-plot(varimp_nnet, main = "Variable Importance with Nnet")
-
+plot_var_Nn <- plot(varimp_nnet, main = "Variable Importance with Nnet")
+plot_var_Nn
 
 
 
 ```
-This model also provides a visualisation of the features that are considered the most importantfeatures, but as the model fails to provide good results in terms of predcitions, it is considered that the information would not be very helpful.
+This model also provides a visualization of the features that are considered the most important features, but as the model fails to provide good results in terms of predictions, it is considered that the information would not be very helpful.
 
 ## Classification Tree
 
@@ -763,14 +765,21 @@ confusion_matrix_CART
 
 - not the best model in term of accuracy
 - but easy to understand and to show to client
-- on the right hand side there are some really good predictions with a lot of observations in this categorie (see percentage)
-- also success to predict a defectuous product with 100% of propbability (the 4th categorie) 
+- on the right hand side there are some really good predictions with a lot of observations in this category (see percentage)
+- also success to predict a defectuous product with 100% of probability (the 4th categorie) 
 - cylinder_no really important as it it the first split
+
+
+```{r, fig.height=c(7), fig.width=c(10)}
+grid.arrange(plot_var_RF, plot_var_Nn, plot_var_SVM2, nrow=1, ncol=3)
+```
+
+
 
 ```{r}
 comparing_results <- rbind(round(confusion_matrix_RF$byClass,2), round(confusion_matrix_KNN$byClass,2), round(confusion_matrix_Logistic$byClass,2), round(confusion_matrix_SVM1$byClass,2), round(confusion_matrix_SVM2$byClass,2),round(confusion_matrix_NN$byClass,2), round(confusion_matrix_CART$byClass,2))
 
-Method <- c("Random Forest", "Nearest Neighbour", "Logistic regression", "Support Vector Machine 1", "Support Vector Machine 1", "Neuronal Network", "Classification Tree")
+Method <- c("Random Forest", "Nearest Neighbor", "Logistic regression", "Support Vector Machine 1", "Support Vector Machine 1", "Neuronal Network", "Classification Tree")
 
 comparing_results <- cbind(Method,comparing_results)%>%
 kable() %>%
@@ -781,7 +790,9 @@ comparing_results
 ```
 
 
-As for now the random forest has offred the best results in terms of accuracy, sensitivity and specificity. As the model uses over 20 variables, it is considered that it has a hight level of complexity. For this reason, a new model is proposed, one that uses the first 10 variables that resulted to be the most important at predicting the variable of interest suing the Random Forest algortithm. This information can be retrieved from the plot below.
+
+
+As for now the random forest has offered the best results in terms of accuracy, sensitivity and specificity. As the model uses over 20 variables, it is considered that it has a high level of complexity. For this reason, a new model is proposed, one that uses the first 10 variables that resulted to be the most important at predicting the variable of interest suing the Random Forest algorithm. This information can be retrieved from the plot below.
 
 ```{r}
 plot(varimp_rf, main = "Variable Importance with Random Forest")
@@ -808,7 +819,7 @@ bands.rf <- bands1[, which(
   )]
 ```
 
-Next, a new model has been build using the newly created data set. The model uses the Random Forest algorithm. The steps related to the data partion into a train and test set have been applied here as well. For the train control, the previous option have been 
+Next, a new model has been build using the newly created data set. The model uses the Random Forest algorithm. The steps related to the data partition into a train and test set have been applied here as well. For the train control, the previous option have been 
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # Random forest with only important variable
