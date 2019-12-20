@@ -424,7 +424,7 @@ The variable **ink_type** could be also determinant in the processus as when the
 # Fitting the models
 
 
-## test and train sets
+## Test and Train sets
 
 In order to construct algorithms that can learn from the data that is provided and to be able to make predictions on new instances, the cleaned database was split in two sunsets: a train set and a test set. The model is first fitted on the train set and the predictions would be done on the test set.
 
@@ -435,8 +435,7 @@ All the models have been created using the 'caret' package. The **trControl** op
 
 Other option that will be used in all the models that are presented in this paper is the **sampling = 'down'** option of **trControl**. This feature will correct the problem of unbalanced classes in the dataset. This is an essential aspect as the class **BAND** has fewer instances than the class **NOBANDS**. The scope of the models is to predict with the most higher accuracy the observations classified as **BAND**. 
 
-```{r message=FALSE, warning=FALSE}
-
+```{r message=FALSE, warning=FALSE, include=FALSE}
 
 # Create the training and test datasets
 set.seed(100)
@@ -483,14 +482,15 @@ model_rf <- caret::train(band_type ~ .,
                          preProcess=NULL,
                          trControl=trainControl(method="repeatedcv", number=10,
                                                 repeats=10, verboseIter=FALSE, sampling = "down"))
-weather.pred.1 <- predict(model_rf, testData)
+prediction_RF <- predict(model_rf, testData)
 
 
 ```
 
 
 ```{r}
-confusionMatrix(weather.pred.1, testData$band_type, positive = 'NOBAND')
+confusion_matrix_RF <- confusionMatrix(prediction_RF, testData$band_type, positive = 'NOBAND')
+confusion_matrix_RF
 ```
 
 The first model gives an accuracy of 77%, with sensitivity reaching 76% and specifity being 79%. This first reasults are encouriging, as the class that interests most is "BAND" and the model is able to predict 34 times correct out of a total of 43 instances. 
@@ -509,7 +509,23 @@ varimp_rf <- varImp(model_rf)
 plot(varimp_rf, main = "Variable Importance with Random Forest")
 
 ```
-The plot  lists the variables  in the order of importance. According to the model, the variables **press_speed**, **viscosity**, **blade_pressure**, **press**, **proof_cut** are the top five attributes that explain the variable of interest.
+< br/><br>
+
+The plot  lists the variables  in the order of importance. According to the model, the variables 
+- 'blade_pressure',
+- 'press',
+- 'press_speed', 
+- 'ink_pct', 
+- 'viscosity',
+- 'ink_temperature',
+- 'proof_cut',
+- 'band_type',
+- "humidity",
+- 'solvent_pct',
+- 'varnish_pct' 
+
+are the top ten  attributes that explain the variable of interest. 
+
 
 
 
@@ -533,7 +549,8 @@ test_pred_knn <- predict(knn_fit, newdata = testData)
 ```
 
 ```{r}
-confusionMatrix(test_pred_knn, testData$band_type, positive = 'NOBAND')
+confusion_matrix_KNN <- confusionMatrix(test_pred_knn, testData$band_type, positive = 'NOBAND')
+confusion_matrix_KNN
 ```
 
 The second  model provided an accuracy of 69%, lower than the one resulted from using the Random Forest algoristh. The sensitivity level and Specificity are 67% and 72% respectively. The two measures have also decresed in contrast with the previous model, but the poucentage for Specificity is still above 70% and given that the company is most interested in predicting well the **BANDS* instances, this model can still be considered satisfying. 
@@ -551,7 +568,7 @@ The final value used for the model was k = 9.
 
 The third model that has been considered is the Logistic regression. Logistic regression is binomial regression model widely used in machine learning when the dependent variable is categorical. As in the case of the other models, the model has been buid using caret.
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # logistic regression
 
 fitControl <- trainControl(method = "repeatedcv", sampling = 'down', )
@@ -568,15 +585,17 @@ pred <- predict(model_lr, newdata = testData)
 
 print(table(pred))
 
-mat <-
-  confusionMatrix(data = pred,
-                  reference = testData$band_type,
-                  positive = "NOBAND")
-print(mat)
+
 
 # the results are very poor, so we will focus on other model, because this one would be difficult to improve
 
 ```
+
+```{r}
+confusion_matrix_Logistic <- confusionMatrix(data = pred, reference = testData$band_type, positive = "NOBAND")
+confusion_matrix_Logistic
+```
+
 
 In the case of Logistic regression, the an accuracy has a level of 74%. The Sensitivity level and Specificity are 76% and 69% respectively. It is interesting as this model is better at predicting the **NOBANDS** rather thand **BANDS**, as opposed to the two previous models. 
 
@@ -604,7 +623,7 @@ model_svm <- train(
 )
 print(model_svm)
 
-
+predict_SVM1 = predict(model_svm, newdata = testData)
 
 
 ```
@@ -612,15 +631,9 @@ print(model_svm)
 
 ```{r}
 
+confusion_matrix_SVM1 <- confusionMatrix(predict_SVM1, reference = testData$band_type,positive = "NOBAND")
 
-
-print(confusionMatrix(
-  data = predict(model_svm, newdata =
-                   testData),
-  reference = testData$band_type,
-  positive = "NOBAND"
-))
-
+confusion_matrix_SVM1
 
 ```
 
@@ -653,18 +666,15 @@ model_svm2
 
 plot(model_svm2)
 
-
+predict_SVM2 <- predict(model_svm2, newdata = testData)
 
 
 ```
 
 ```{r}
-print(confusionMatrix(
-  data = predict(model_svm2, newdata =
-                   testData),
-  reference = testData$band_type,
-  positive = "NOBAND"
-))
+confusion_matrix_SVM2= confusionMatrix( predict_SVM2, reference = testData$band_type, positive = "NOBAND")
+
+confusion_matrix_SVM2
 
 
 ```
@@ -692,9 +702,8 @@ results1
 
 ```{r}
 
-conf1 <-
-  confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
-conf1
+confusion_matrix_NN <-   confusionMatrix(results1, testData$band_type, positive = 'NOBAND')
+confusion_matrix_NN
 ```
 The Neural Network has less good results compared to teh other mdoels. This is not surprising, as normally this type of models works better when the dataset las big amount of datas to learn on, and in our case the data set has a total of 363 instances (75% of the total of 485 data points).
 
@@ -742,16 +751,15 @@ rpart.plot(model_cart, box.palette = "RdBu", nn = FALSE)
 printcp(model_cart)
 
 
-table(true=testData$band_type, pred = cart.pred)
-
-CrossTable(x=testData$band_type, y=cart.pred, prop.chisq=FALSE)
-
-confusionMatrix(cart.pred, testData$band_type, positive = 'NOBAND')
-
-predict_cart <- predict(model_cart, newdata = testData)
-
-
 ```
+
+
+```{r}
+
+confusion_matrix_CART <- confusionMatrix(cart.pred, testData$band_type, positive = 'NOBAND')
+confusion_matrix_CART
+```
+
 
 - not the best model in term of accuracy
 - but easy to understand and to show to client
@@ -759,17 +767,17 @@ predict_cart <- predict(model_cart, newdata = testData)
 - also success to predict a defectuous product with 100% of propbability (the 4th categorie) 
 - cylinder_no really important as it it the first split
 
+```{r}
+comparing_results <- rbind(round(confusion_matrix_RF$byClass,2), round(confusion_matrix_KNN$byClass,2), round(confusion_matrix_Logistic$byClass,2), round(confusion_matrix_SVM1$byClass,2), round(confusion_matrix_SVM2$byClass,2),round(confusion_matrix_NN$byClass,2), round(confusion_matrix_CART$byClass,2))
 
-```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
+Method <- c("Random Forest", "Nearest Neighbour", "Logistic regression", "Support Vector Machine 1", "Support Vector Machine 1", "Neuronal Network", "Classification Tree")
 
-knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes1.PNG")
+comparing_results <- cbind(Method,comparing_results)%>%
+kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "left")%>%
+  footnote(symbol = strwrap("Results confusion matrix"))
 
-```
-
-```{r,  echo = FALSE, warning = FALSE, message = FALSE, out.width = "700px"}
-
-knitr::include_graphics("C:/Users/claud/Desktop/Ana/HEC/3rd semester/Projects in Data Analytics/project/dadm2019/pictures/attributes2.PNG")
-
+comparing_results
 ```
 
 
@@ -779,11 +787,9 @@ As for now the random forest has offred the best results in terms of accuracy, s
 plot(varimp_rf, main = "Variable Importance with Random Forest")
 
 ```
- A new data base has been created in which information has been retained from the 1o most important attributes, and has been stored in the variable 'bands.rf'.
+A new data base has been created in which information has been retained from the 10 most important attributes, and has been stored in the variable 'bands.rf'.
 
 ```{r}
-
-
 
 bands.rf <- bands1[, which(
     names(bands1) %in% c(
@@ -804,7 +810,7 @@ bands.rf <- bands1[, which(
 
 Next, a new model has been build using the newly created data set. The model uses the Random Forest algorithm. The steps related to the data partion into a train and test set have been applied here as well. For the train control, the previous option have been 
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 # Random forest with only important variable
 
 integ_mod_1 <- data_integrity_model(data = bands.rf, model_name = "randomForest")
@@ -835,13 +841,30 @@ model_rf.imp <- caret::train(band_type ~ .,
                          preProcess=NULL,
                          trControl=trainControl(method="repeatedcv", number=10,
                                                 repeats=10, verboseIter=FALSE, sampling = "down"))
-weather.pred.1 <- predict(model_rf.imp, testData.rf)
-confusionMatrix(weather.pred.1, testData.rf$band_type, positive = 'NOBAND')
+prediction_simpler_model <- predict(model_rf.imp, testData.rf)
+confusion_matrix_RF_simple=confusionMatrix(prediction_simpler_model, testData.rf$band_type, positive = 'NOBAND')
 
 
 ```
 
 
+```{r}
+
+comparing_results <- rbind(round(confusion_matrix_RF$byClass,2), round(confusion_matrix_RF_simple$byClass,2))
+
+Method <- c("Random Forest", "Random Forest simplified")
+
+comparing_results <- cbind(Method,comparing_results)%>%
+kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover","condensed","bordered"),full_width = F, position = "left")%>%
+  footnote(symbol = strwrap("Results confusion matrix"))
+
+comparing_results
+```
+
+
+
+The results are encouraging. The 
 
 
 
