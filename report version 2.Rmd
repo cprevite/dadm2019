@@ -541,7 +541,11 @@ The final value used for the model was k = 9.
 
 ## Logistic Regression
 
+
 The third model that has been considered is the Logistic regression. As in the case of the other models, the model has been buid using caret.
+
+
+Logistic regression is binomial regression model widely used in machine learning when the dependent variable is categorical.
 
 
 ```{r message=FALSE, warning=FALSE}
@@ -577,9 +581,8 @@ For the moment this model is the least important as the Specificity is the lowes
 
 ## Support Vector Machine 1
 
-- explain how it works
-- fit the model
-- results
+Support Vector Machines are supervised learning models, which task is to analyze data used for classification and regression analysis with help of associated learning algorithm.
+
 
 
 ```{r}
